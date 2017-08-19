@@ -87,25 +87,9 @@ int main (int argc, char *argv[])
       while (lex.yylex(tok) != quan_lexer::END_OF_INPUT){
          *out << "---- " << tok.m_position << " ----\n";
          if ( tok.m_token_id < 256){
-            *out << "ID["<< tok.m_token_id << "]:\"" << tok.m_lexeme << "\"";
+            *out << "ID["<< tok.m_token_id << "]";
          }else{
             switch (tok.m_token_id){
-   /*
-    NAME_ = 257 
-      , EMIT_ = 258 
-      , JUMP_ = 259 
-      , APPEND_ = 260 
-      , PUSHFPOS_ = 262 
-      , POPFPOS_ = 263 
-      , STRING_LITERAL_ = 264  
-      , DEFAULT_ = 266 
-      , STATE_ = 267 
-      , DOT_DOT_ = 268 
-      , CHARSEQ_ = 269 
-      , END_OF_INPUT = 270 
-      , UNDEFINED = 271
-   */
-               
                case  quan_lexer::EMIT_:
                case  quan_lexer::JUMP_:
                case  quan_lexer::APPEND_:
@@ -113,32 +97,30 @@ int main (int argc, char *argv[])
                case  quan_lexer::POPFPOS_:
                case  quan_lexer::DEFAULT_:
                case  quan_lexer::STATE_:
-                  *out << "keyword:" << tok.m_lexeme;
+                  *out << "keyword" ;
                   break;
                case  quan_lexer::DOT_DOT_:
-                  *out << "punct:..";
+                  *out << "punct";
                   break;
                case quan_lexer::NAME_:
-                  *out << "name:\"" << tok.m_lexeme << "\"";;
+                  *out << "name";
                   break;
                case  quan_lexer::STRING_LITERAL_:
-                  *out << "string_literal:\"" << tok.m_lexeme << "\"";;
+                  *out << "string_literal";
                   break;
                case  quan_lexer::CHARSEQ_:
-                  *out << "charseq:\'" << tok.m_lexeme << "\'";
+                  *out << "charseq";
                   break;
                case  quan_lexer::UNDEFINED:
-                  *out << "undefined";
+                  *out << "undefined" ;
                   break;
                default:
-                  *out << "UNKNOWN Token:\"" << tok.m_token_id << "\"";
+                  *out << "UNKNOWN"; 
                   break;
             }
 
          }
-         *out << "\n\n";
-       //  *out << "tok id = " << tok.token_id <<'\n';
-         
+         *out << ": " << tok.m_lexeme << "\n\n";
       }
 
       if(out != &std::cout){

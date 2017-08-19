@@ -1,0 +1,60 @@
+
+   /*** sample lexer ***/
+
+   state string_literal    ;
+   state mlcomment ;
+   state slcomment ;
+   state main default;
+   
+   newl = '\n' | "\r\n" ;
+
+   state string_literal {
+
+     escape_chars =  '"'
+     "\""       [ popfpos, jump main, emit String ]
+     "\\"       [ append "\\"  // escape quote ]
+     "\\n"      [ append "\\n"  // etc ]
+     "\\t"      [ append "\\t"  ]
+     "\\r"      [ append "\\r"  ]
+     . ^ '\n'   [ append $ ] // append anything else but newl
+   } 
+   
+   state main {
+
+       space      =  ' \t'               ;
+       exp        =  'eE'                ;
+       sign       =  '+-'                ;
+       alpha      =  'A'..'Z' | 'a'..'z' ;
+       digit      =  '0'..'9'            ;
+       alnum      =  alpha | digit       ;
+       ident      =  ( alnum & !digit | '_' ) ( alnum | '_' )* ;
+       int        =  digit+                                     ;
+       exponent   =  exp sign? digit+                           ;
+       real       =  digit* '.' digit+ exponent?          |
+                     digit+ ( '.' exponent? | exponent )  ;
+       ws         = ( space | newl )+       ;
+
+      "/*"      [ jump mlcomment ]  
+      "//"      [ jump slcomment ] 
+      "\""      [ pushfpos, jump string_literal ] 
+
+      "keyword" [ append $, emit Keyword   ]
+      int       [ append $, emit Integer  ]
+      real      [ append $, emit Real     ]
+      ws        [ /* eat whitespace*/    ]     
+      '(' | ')' [ emit $ ]
+      ident     [ append $, emit Ident ]
+
+   }
+
+   state mlcomment {
+     
+      "*/"      [ jump main ] 
+      .         [] // eat anything else
+   }
+
+   state slcomment {
+
+      newl      [ jump main ]
+      .         [ ] //eat anything else
+   }

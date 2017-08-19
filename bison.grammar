@@ -1,0 +1,122 @@
+
+
+%{
+%}
+
+%token  
+  NAME EMIT JUMP APPEND 
+  STATE PUSHFPOS POPFPOS 
+  STRING_LITERAL
+  CHAR DEFAULT MODE DOT_DOT CHARSEQ
+
+%%
+
+Flexible :
+   Stmts
+;
+
+Stmts :
+    Stmt
+  | Stmts Stmt
+;
+
+Stmt :
+   StateStmt
+  | StateDecl
+;
+
+StateDecl:
+    STATE NAME StateBody
+  | STATE NAME DEFAULT StateBody
+;
+
+StateStmt:
+    Definition
+  | Action
+;
+
+StateStmts :
+  StateStmt
+  | StateStmts StateStmt
+;
+
+StateBody :
+  ';'
+ | '{' StateStmts '}'
+;
+
+Action :
+  Expr  Actions
+;
+
+Actions :
+  '[' ActionList ']'
+  | '[' ']' 
+;
+
+ActionList :
+    Action
+  | ActionList ',' Action
+;
+
+Action:
+    PUSHFPOS
+ |  POPFPOS
+ |  JUMP NAME
+ |  EMIT EmitArgs
+ |  APPEND AppendArgs
+;
+
+EmitArgs :
+     NAME
+  |  '$'
+;
+
+AppendArgs:
+     STRING_LITERAL
+  |  CHAR
+  |  '$'
+;
+
+Definition :
+   NAME '=' Expr ';'
+;
+
+Expr:
+     CatExpr
+  |  CatExpr '|' Expr
+;
+
+CatExpr :
+    AndExpr
+  | AndExpr CatExpr
+;
+
+AndExpr :
+    Prim
+  | Prim '&' AndExpr
+;
+
+BasicPrim:
+   '.'
+  | CHAR
+  | CHARSEQ
+  | CHAR DOT_DOT CHAR
+  | NAME
+  | STRING_LITERAL
+  | '!' BasicPrim
+  | '(' Expr ')'
+;
+
+Prim :
+    BasicPrim
+  | BasicPrim PrimModifier
+;
+
+PrimModifier :
+     '?'
+   | '*'
+   | '+'
+;
+
+%%

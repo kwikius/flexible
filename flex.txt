@@ -1,0 +1,237 @@
+
+
+%option noyywrap
+%x COMMENT_MODE
+%x SL_COMMENT_MODE
+%x STRING_MODE
+%x CHARSEQ_MODE
+
+%{
+
+  //####################
+
+#include <iostream>
+#include <string>
+#include <cassert>
+
+#define YY_NO_UNISTD_H
+
+#include "SlkParse.h"
+
+#include "src_lexer.hpp"
+#include <quan/atomicstring.hpp>
+#include <quan/gc.hpp>
+
+#define YY_DECL int quan_lexer::src_lexer::yylex(token_type & tok)
+
+#define yyterminate() \
+   tok.m_position = m_position;\
+   return tok.token_id = quan_lexer::END_OF_SLK_INPUT_;
+
+#undef yywrap
+#define yywrap() 1
+
+#undef yyFlexLexer
+
+using std::cin;
+using std::cout;
+using std::cerr;
+
+   //#############################
+   // derive own class from
+   // yyFlexLexer
+   // the yyFlexLexer must be defined
+   // for linkage purposes
+
+int yyFlexLexer::yylex(){assert(false); return 0;}
+
+%} /*############################## */
+
+ /* scanner */
+
+BLANK             [ \t]
+ALPHA             [A-Za-z]
+DIGIT             [0-9]
+OPERATOR          [!&-+*/=~|<>^?~%#@]
+PUNCT             [\(\)\{\}\[\]\:\;\,\.\"]
+NOTNL             .
+IDCHAR            {ALPHA}|"_"
+UNIXNEWL          [\n]
+MACNEWL           [\r]
+
+NEWL              {UNIXNEWL}|({MACNEWL}{UNIXNEWL}?)
+NONESCAPECHAR     {ALPHA}|{DIGIT}|{OPERATOR}|{PUNCT}|"_"
+
+ /* any of 256 source characters */
+ANY               ({NOTNL}|{NEWL})
+ /* normal string character: any but quote,  or backslash */
+STRCHAR           [^\"\\]
+
+ /* normal char character: any but chquote, or backslash */
+CHARSEQCHAR       [^\'\\]       
+
+%%  /*############################### */
+
+  /*----------------------  initial -----------------------*/
+
+<INITIAL>{BLANK}+  {m_position.column += yyleng;}
+<INITIAL>{NEWL}    {m_position.column = 1; ++m_position.row;}
+<INITIAL>"\""   {
+   m_current_string_literal = "";
+   tok.m_position = m_position;
+   ++m_position.column;
+   BEGIN(STRING_MODE);
+}
+<INITIAL>"'"   {
+   m_current_string_literal = "";
+   tok.m_position = m_position;
+   ++m_position.column;
+   BEGIN(CHARSEQ_MODE);
+}
+<INITIAL>"/*"        BEGIN(COMMENT_MODE);
+
+<INITIAL>"//"        BEGIN(SL_COMMENT_MODE);
+
+<INITIAL>"state" {
+   return do_tokenID(tok,quan_lexer::STATE_);
+}
+
+<INITIAL>"jump" {
+   return do_tokenID(tok,quan_lexer::JUMP_);
+}
+
+<INITIAL>"append" {
+   return do_tokenID(tok,quan_lexer::APPEND_);
+}
+
+<INITIAL>"emit" {
+   return do_tokenID(tok,quan_lexer::EMIT_);
+}
+
+<INITIAL>"pushfpos" {
+   return do_tokenID(tok,quan_lexer::PUSHFPOS_);
+}
+
+<INITIAL>"popfpos" {
+   return do_tokenID(tok,quan_lexer::POPFPOS_);
+}
+
+<INITIAL>"default" {
+   return do_tokenID(tok,quan_lexer::DEFAULT_);
+}
+
+<INITIAL>{IDCHAR}({IDCHAR}|{DIGIT})* {
+
+   do_string_handle(tok);
+   return tok.token_id = quan_lexer::NAME_;
+}
+
+<INITIAL>".." {
+   return do_tokenID(tok,quan_lexer::DOT_DOT_);
+}
+
+<INITIAL>"$"|"."|"="|","|"|"|"&"|";"|"{"|"}"|"?"|"*"|"+"|"("|")"|"!"|"["|"]" {
+   return do_tokenID(tok);
+}
+
+ /* ------------------- string  ---------------------*/
+
+<STRING_MODE>"\"" {
+   ++m_position.column;
+   BEGIN(INITIAL);
+   return do_string_literal(tok);
+}
+
+<STRING_MODE>{STRCHAR}+  {
+   m_current_string_literal += yytext;
+   m_position.column += yyleng;
+}
+
+ /*--------------charseq -----------------------------*/
+
+<CHARSEQ_MODE>"'" {
+   ++m_position.column;
+   BEGIN(INITIAL);
+   return do_charseq(tok);
+}
+
+<CHARSEQ_MODE>{CHARSEQCHAR}+ {
+   m_current_string_literal += yytext;
+   m_position.column += yyleng;
+}
+
+ /*---- common string --- */
+
+<CHARSEQ_MODE,STRING_MODE>"\\b" {
+   m_current_string_literal += "\b";
+   m_position.column += 2;
+}
+
+<CHARSEQ_MODE,STRING_MODE>"\\t" {
+   m_current_string_literal += "\t";
+   m_position.column += 2;
+}
+
+<CHARSEQ_MODE,STRING_MODE>"\\n" {
+   m_current_string_literal += "\n";
+   m_position.column += 2;
+}
+
+<CHARSEQ_MODE,STRING_MODE>"\\v" {
+   m_current_string_literal += "\v";
+   m_position.column += 2;
+}
+
+<CHARSEQ_MODE,STRING_MODE>"\\f" {
+   m_current_string_literal += "\f";
+   m_position.column += 2;
+}
+
+<CHARSEQ_MODE,STRING_MODE>"\\r" {
+   m_current_string_literal += "\r";
+   m_position.column += 2;
+}
+
+<CHARSEQ_MODE,STRING_MODE>"\\\\" {
+   m_current_string_literal += "\\";
+   m_position.column += 2;
+}
+<CHARSEQ_MODE,STRING_MODE>"\\\'" {
+   m_current_string_literal += "\'";
+   m_position.column += 2;
+}
+<CHARSEQ_MODE,STRING_MODE>"\\\"" {
+   m_current_string_literal += "\"";
+   m_position.column += 2;
+}
+
+<CHARSEQ_MODE,STRING_MODE>"\\0" {
+   m_current_string_literal += "\0";
+   m_position.column += 2;
+}
+
+  /*--------------comment (multiline)  -----------------------------*/
+
+<COMMENT_MODE>[^*\n]*         /* eat anything that's not a '*'  */
+<COMMENT_MODE>"*"+[^*/\n]*    /* eat up '*'s not followed by '/'s */
+<COMMENT_MODE>"\n"        {m_position.column = 1; ++m_position.row;}
+<COMMENT_MODE>"*"+"/"      BEGIN(INITIAL);
+
+ /*--------------comment (single iline)  -----------------------------*/
+
+<SL_COMMENT_MODE>[^\n]    /* eat up anything except a return */
+<SL_COMMENT_MODE>"\n" {
+   m_position.column = 1; ++m_position.row;
+   BEGIN(INITIAL);
+}
+
+ /*anything else */
+
+. {
+      init_tok(tok,token_type::classUndefined);
+      tok.m_string_literal = quan::gc_malloc<std::string>(yytext);
+      BEGIN(INITIAL);
+      return tok.token_id = yytext[0] ;
+}
+
+%%

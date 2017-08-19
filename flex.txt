@@ -26,7 +26,7 @@
 
 #define yyterminate() \
    tok.m_position = m_position;\
-   return tok.token_id = quan_lexer::END_OF_INPUT;
+   return tok.m_token_id = quan_lexer::END_OF_INPUT;
 
 #undef yywrap
 #define yywrap() 1
@@ -123,7 +123,7 @@ CHARSEQCHAR       [^\'\\]
 <INITIAL>{IDCHAR}({IDCHAR}|{DIGIT})* {
 
    do_string_handle(tok);
-   return tok.token_id = quan_lexer::NAME_;
+   return tok.m_token_id = quan_lexer::NAME_;
 }
 
 <INITIAL>".." {
@@ -228,10 +228,11 @@ CHARSEQCHAR       [^\'\\]
  /*anything else */
 
 . {
-      init_tok(tok,token_type::classUndefined);
+      init_tok(tok);
+      tok.m_token_id = quan_lexer::UNDEFINED;
       tok.m_lexeme = yytext;
       BEGIN(INITIAL);
-      return tok.token_id = yytext[0] ;
+      return tok.m_token_id = yytext[0] ;
 }
 
 %%

@@ -5,7 +5,7 @@
 #include <FlexLexer.h>
 #endif
 #include <quan/lexer/sourcepos.hpp>
-#include "src_token.hpp"
+#include "token.hpp"
 
 namespace quan_lexer{
 
@@ -15,12 +15,12 @@ namespace quan_lexer{
             std::istream * in,
             std::ostream * out
       );
-      typedef  quan_lexer::src_token token_type;
+      typedef  quan_lexer::token token_type;
 
       int yylex( token_type & tok);
       quan::lexer::source_pos get_position() const;
       std::ostream & out() ;
-      void init_tok(token_type& tok, int tokenClass);
+      void init_tok(token_type& tok);
       void do_string_handle(token_type & tok);
       int do_string_literal(token_type& tok);
       int do_charseq(token_type& tok);

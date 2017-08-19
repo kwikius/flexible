@@ -7,10 +7,12 @@
 namespace quan_lexer {
 
    /*
+      Tokens are integers
       Any value less than 256 
    */
 
    enum _Slk_token_defines { 
+     
      NAME_ = 257 
    , EMIT_ = 258 
    , JUMP_ = 259 
@@ -23,6 +25,7 @@ namespace quan_lexer {
    , DOT_DOT_ = 268 
    , CHARSEQ_ = 269 
    , END_OF_INPUT = 270 
+   , UNDEFINED = 271
    }; 
 }
 

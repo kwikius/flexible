@@ -78,40 +78,63 @@ int main (int argc, char *argv[])
       }
       int errorcount = 0;
       // stop processing files once threshold exceeded
-      int const threshold = 5;
+     //int const threshold = 5;
 
 
       quan_lexer::src_lexer lex(argv[1],&in,out);
 
-      quan_lexer::src_token tok;
+      quan_lexer::token tok;
       while (lex.yylex(tok) != quan_lexer::END_OF_INPUT){
          *out << "---- " << tok.m_position << " ----\n";
-         *out << "class = " ;
-         switch (tok.token_class){
-            
-            case  quan_lexer::src_token::classUndefined:
-               *out << "undefined";
-               break;
-            case  quan_lexer::src_token::classIdentifier:
-               *out << "identifier, text = \"";
-                *out << tok.m_lexeme << "\"";
-               break;
-            case  quan_lexer::src_token::classTokenID:
-               *out << "ID  \"" << tok.token_id << "\"";
-               break;
-            case  quan_lexer::src_token::classStringLiteral:
-               *out << "string literal, text = \"" << tok.m_lexeme << "\"";
-               break;
-            case  quan_lexer::src_token::classChar:
-               *out << "char, text = \'" << tok.m_lexeme << "\'";
-               break;
-            case  quan_lexer::src_token::classCharSeq:
-               *out << "charseq, text = \'" << tok.m_lexeme << "\'";
-               break;
-            default:
-               *out << "UNKNOWN CLASS \"" << tok.token_class << "\"";
- 
-               break;
+         if ( tok.m_token_id < 256){
+            *out << "ID["<< tok.m_token_id << "]:\"" << tok.m_lexeme << "\"";
+         }else{
+            switch (tok.m_token_id){
+   /*
+    NAME_ = 257 
+      , EMIT_ = 258 
+      , JUMP_ = 259 
+      , APPEND_ = 260 
+      , PUSHFPOS_ = 262 
+      , POPFPOS_ = 263 
+      , STRING_LITERAL_ = 264  
+      , DEFAULT_ = 266 
+      , STATE_ = 267 
+      , DOT_DOT_ = 268 
+      , CHARSEQ_ = 269 
+      , END_OF_INPUT = 270 
+      , UNDEFINED = 271
+   */
+               
+               case  quan_lexer::EMIT_:
+               case  quan_lexer::JUMP_:
+               case  quan_lexer::APPEND_:
+               case  quan_lexer::PUSHFPOS_:
+               case  quan_lexer::POPFPOS_:
+               case  quan_lexer::DEFAULT_:
+               case  quan_lexer::STATE_:
+                  *out << "keyword:" << tok.m_lexeme;
+                  break;
+               case  quan_lexer::DOT_DOT_:
+                  *out << "punct:..";
+                  break;
+               case quan_lexer::NAME_:
+                  *out << "name:\"" << tok.m_lexeme << "\"";;
+                  break;
+               case  quan_lexer::STRING_LITERAL_:
+                  *out << "string_literal:\"" << tok.m_lexeme << "\"";;
+                  break;
+               case  quan_lexer::CHARSEQ_:
+                  *out << "charseq:\'" << tok.m_lexeme << "\'";
+                  break;
+               case  quan_lexer::UNDEFINED:
+                  *out << "undefined";
+                  break;
+               default:
+                  *out << "UNKNOWN Token:\"" << tok.m_token_id << "\"";
+                  break;
+            }
+
          }
          *out << "\n\n";
        //  *out << "tok id = " << tok.token_id <<'\n';

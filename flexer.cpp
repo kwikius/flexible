@@ -18,7 +18,4 @@ quan_lexer::flexer::flexer (std::string const & filename,std::ostream * out)
            if ( ! m_ostream ){
              throw std::runtime_error("flexer - no output file");
            }
-//           if ( ! m_mode ){
-//             throw std::runtime_error("flexer - no mode");
-//           }
        }

@@ -10,13 +10,11 @@
 
    state string_literal {
 
-     escape_chars =  '"'
-     "\""       [ popfpos, jump main, emit String ]
-     "\\"       [ append "\\"  // escape quote ]
-     "\\n"      [ append "\\n"  // etc ]
-     "\\t"      [ append "\\t"  ]
-     "\\r"      [ append "\\r"  ]
-     . ^ '\n'   [ append $ ] // append anything else but newl
+     escape_char = '"\\ntr';
+     escape_seq  = '\\' escape_char ;
+
+     "\""                     [ popfpos, emit String, jump main ]
+     escape_seq  | . ^ '\n'   [ append $ ] // append anything else but newl
    } 
    
    state main {

@@ -84,7 +84,7 @@ int main (int argc, char *argv[])
       quan_lexer::src_lexer lex(argv[1],&in,out);
 
       quan_lexer::src_token tok;
-      while (lex.yylex(tok) != quan_lexer::END_OF_SLK_INPUT_){
+      while (lex.yylex(tok) != quan_lexer::END_OF_INPUT){
          *out << "---- " << tok.m_position << " ----\n";
          *out << "class = " ;
          switch (tok.token_class){
@@ -93,20 +93,20 @@ int main (int argc, char *argv[])
                *out << "undefined";
                break;
             case  quan_lexer::src_token::classIdentifier:
-               *out << "indentifier, text = \"";
-                *out << tok.m_identifier << "\"";
+               *out << "identifier, text = \"";
+                *out << tok.m_lexeme << "\"";
                break;
             case  quan_lexer::src_token::classTokenID:
                *out << "ID  \"" << tok.token_id << "\"";
                break;
             case  quan_lexer::src_token::classStringLiteral:
-               *out << "string literal, text = \"" << *tok.m_string_literal << "\"";
+               *out << "string literal, text = \"" << tok.m_lexeme << "\"";
                break;
             case  quan_lexer::src_token::classChar:
-               *out << "char, text = \'" << tok.m_char << "\'";
+               *out << "char, text = \'" << tok.m_lexeme << "\'";
                break;
             case  quan_lexer::src_token::classCharSeq:
-               *out <<"charseq, text = \'" << *tok.m_string_literal << "\'";
+               *out << "charseq, text = \'" << tok.m_lexeme << "\'";
                break;
             default:
                *out << "UNKNOWN CLASS \"" << tok.token_class << "\"";

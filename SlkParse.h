@@ -6,6 +6,10 @@
 
 namespace quan_lexer {
 
+   /*
+      Any value less than 256 
+   */
+
    enum _Slk_token_defines { 
      NAME_ = 257 
    , EMIT_ = 258 
@@ -13,13 +17,12 @@ namespace quan_lexer {
    , APPEND_ = 260 
    , PUSHFPOS_ = 262 
    , POPFPOS_ = 263 
-   , STRING_LITERAL_ = 264 
-   , CHAR_ = 265 
+   , STRING_LITERAL_ = 264  
    , DEFAULT_ = 266 
    , STATE_ = 267 
    , DOT_DOT_ = 268 
    , CHARSEQ_ = 269 
-   , END_OF_SLK_INPUT_ = 270 
+   , END_OF_INPUT = 270 
    }; 
 }
 

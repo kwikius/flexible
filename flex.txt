@@ -26,7 +26,7 @@
 
 #define yyterminate() \
    tok.m_position = m_position;\
-   return tok.token_id = quan_lexer::END_OF_SLK_INPUT_;
+   return tok.token_id = quan_lexer::END_OF_INPUT;
 
 #undef yywrap
 #define yywrap() 1
@@ -229,7 +229,7 @@ CHARSEQCHAR       [^\'\\]
 
 . {
       init_tok(tok,token_type::classUndefined);
-      tok.m_string_literal = quan::gc_malloc<std::string>(yytext);
+      tok.m_lexeme = yytext;
       BEGIN(INITIAL);
       return tok.token_id = yytext[0] ;
 }

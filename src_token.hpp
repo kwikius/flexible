@@ -18,6 +18,7 @@ namespace quan_lexer{
 
       int                        token_class;
       short                      token_id; // id as used by SLK
+      // the lexeme really ?
       union{
          std::string*                   m_string_literal;
          char const *                   m_identifier;

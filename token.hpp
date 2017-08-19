@@ -12,10 +12,7 @@ namespace quan_lexer{
       std::string                m_lexeme;   // the source comprising the lexeme
       quan::lexer::source_pos    m_position;
       quan::atomicstring<char>   m_filename;
-
       token(): m_token_id{UNDEFINED}, m_position(1,1){}
-      std::string to_string() const;
-
    };
 }
 

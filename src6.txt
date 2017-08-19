@@ -16,7 +16,7 @@
      "\""                     [ popfpos, emit String, jump main ]
      escape_seq  | . ^ '\n'   [ append $ ] // append anything else but newl
    } 
-   
+
    state main {
 
        space      =  ' \t'               ;

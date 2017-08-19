@@ -20,18 +20,17 @@ namespace quan_lexer{
       int yylex( token_type & tok);
       quan::lexer::source_pos get_position() const;
       std::ostream & out() ;
+      private:
       void init_tok(token_type& tok);
       void do_string_handle(token_type & tok);
       int do_string_literal(token_type& tok);
       int do_charseq(token_type& tok);
       int do_tokenID(token_type& tok);
       int do_tokenID(token_type& tok,short ID);
-      int do_quoted_char(token_type& tok);
 
-      private:
-        quan::lexer::source_pos m_position;
+        quan::lexer::source_pos m_position; // keep track of the current file and position
         std::string const & m_filename;
-        std::string m_current_string_literal;
+        std::string m_lexeme; // 
    };
 }
 

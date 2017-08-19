@@ -77,17 +77,19 @@ CHARSEQCHAR       [^\'\\]
 <INITIAL>{BLANK}+  {m_position.column += yyleng;}
 <INITIAL>{NEWL}    {m_position.column = 1; ++m_position.row;}
 <INITIAL>"\""   {
-   m_current_string_literal = "";
+   m_lexeme = "";
    tok.m_position = m_position;
    ++m_position.column;
    BEGIN(STRING_MODE);
 }
+
 <INITIAL>"'"   {
-   m_current_string_literal = "";
+   m_lexeme = "";
    tok.m_position = m_position;
    ++m_position.column;
    BEGIN(CHARSEQ_MODE);
 }
+
 <INITIAL>"/*"        BEGIN(COMMENT_MODE);
 
 <INITIAL>"//"        BEGIN(SL_COMMENT_MODE);
@@ -143,7 +145,7 @@ CHARSEQCHAR       [^\'\\]
 }
 
 <STRING_MODE>{STRCHAR}+  {
-   m_current_string_literal += yytext;
+   m_lexeme += yytext;
    m_position.column += yyleng;
 }
 
@@ -156,57 +158,57 @@ CHARSEQCHAR       [^\'\\]
 }
 
 <CHARSEQ_MODE>{CHARSEQCHAR}+ {
-   m_current_string_literal += yytext;
+   m_lexeme += yytext;
    m_position.column += yyleng;
 }
 
  /*---- common string --- */
 
 <CHARSEQ_MODE,STRING_MODE>"\\b" {
-   m_current_string_literal += "\b";
+   m_lexeme += "\b";
    m_position.column += 2;
 }
 
 <CHARSEQ_MODE,STRING_MODE>"\\t" {
-   m_current_string_literal += "\t";
+   m_lexeme += "\t";
    m_position.column += 2;
 }
 
 <CHARSEQ_MODE,STRING_MODE>"\\n" {
-   m_current_string_literal += "\n";
+   m_lexeme += "\n";
    m_position.column += 2;
 }
 
 <CHARSEQ_MODE,STRING_MODE>"\\v" {
-   m_current_string_literal += "\v";
+   m_lexeme += "\v";
    m_position.column += 2;
 }
 
 <CHARSEQ_MODE,STRING_MODE>"\\f" {
-   m_current_string_literal += "\f";
+   m_lexeme += "\f";
    m_position.column += 2;
 }
 
 <CHARSEQ_MODE,STRING_MODE>"\\r" {
-   m_current_string_literal += "\r";
+   m_lexeme += "\r";
    m_position.column += 2;
 }
 
 <CHARSEQ_MODE,STRING_MODE>"\\\\" {
-   m_current_string_literal += "\\";
+   m_lexeme += "\\";
    m_position.column += 2;
 }
 <CHARSEQ_MODE,STRING_MODE>"\\\'" {
-   m_current_string_literal += "\'";
+   m_lexeme += "\'";
    m_position.column += 2;
 }
 <CHARSEQ_MODE,STRING_MODE>"\\\"" {
-   m_current_string_literal += "\"";
+   m_lexeme += "\"";
    m_position.column += 2;
 }
 
 <CHARSEQ_MODE,STRING_MODE>"\\0" {
-   m_current_string_literal += "\0";
+   m_lexeme += "\0";
    m_position.column += 2;
 }
 

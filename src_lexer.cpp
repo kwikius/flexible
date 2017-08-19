@@ -52,13 +52,13 @@ void quan_lexer::src_lexer::do_string_handle(token_type & tok)
 int quan_lexer::src_lexer::do_string_literal(token_type& tok)
 {
    tok.m_filename = m_filename;
-   tok.m_lexeme = m_current_string_literal.c_str();
+   tok.m_lexeme = m_lexeme;
    return tok.m_token_id = quan_lexer::STRING_LITERAL_;
 }
 
 int quan_lexer::src_lexer::do_charseq(token_type& tok)
 {
    tok.m_filename = m_filename;
-   tok.m_lexeme = m_current_string_literal;
+   tok.m_lexeme = m_lexeme;
    return tok.m_token_id = quan_lexer::CHARSEQ_;
 }

@@ -20,7 +20,6 @@
 
 #include "src_lexer.hpp"
 #include <quan/atomicstring.hpp>
-#include <quan/gc.hpp>
 
 #define YY_DECL int quan_lexer::src_lexer::yylex(token_type & tok)
 
@@ -59,7 +58,7 @@ NOTNL             .
 IDCHAR            {ALPHA}|"_"
 UNIXNEWL          [\n]
 MACNEWL           [\r]
-ESCCHAR           [\'\"\\btnvfr]
+ESCCHAR           [\'\"\\abfnrtv]
 NEWL              {UNIXNEWL}|({MACNEWL}{UNIXNEWL}?)
 NONESCAPECHAR     {ALPHA}|{DIGIT}|{OPERATOR}|{PUNCT}|"_"
 HEXESCAPE         "\\x\("{HEXDIGIT}+"\)"
@@ -68,7 +67,7 @@ CHARESCAPE        "\\"{ESCCHAR}
  /* any of 256 source characters */
 ANY               ({NOTNL}|{NEWL})
  /* normal string/char seq character: any but quote,  or backslash */
-STRCHAR           [^\'\"\\\n\b\v\t\f\r]
+STRCHAR           [^\'\"\\\n\a\b\v\t\f\r]
 
 %%  /*############################### */
 
@@ -137,8 +136,7 @@ STRCHAR           [^\'\"\\\n\b\v\t\f\r]
 }
 
 <INITIAL>{IDCHAR}({IDCHAR}|{DIGIT})* {
-   do_string_handle(tok);
-   return tok.m_token_id = quan_lexer::NAME_;
+   return do_string_handle(tok);
 }
 
 <INITIAL>".." {
@@ -152,23 +150,32 @@ STRCHAR           [^\'\"\\\n\b\v\t\f\r]
    /* ------------------- string  ---------------------*/
 
 <MODE_STRING>"\"" {
+   // end of the string
    ++m_position.column;
    BEGIN(INITIAL);
    return do_string_literal(tok);
 }
 
 <MODE_STRING>{NEWL} {
+   do_error(tok,"raw return char in string literal");
    m_position.column = 1; ++m_position.row;
+   m_lexeme = "";
    BEGIN(INITIAL);
-   return do_error(tok,"raw return char in string literal",0);
-}
-
-<MODE_STRING>{STRCHAR}+  {
-   m_lexeme += yytext;
-   m_position.column += yyleng;
+   return tok.m_token_id = quan_lexer::token::error;
 }
 
    /*--------------charseq -----------------------------*/
+
+<MODE_CHARSEQ>"'" {
+   ++m_position.column;
+   BEGIN(INITIAL);
+   return do_charseq(tok);
+}
+
+<MODE_CHARSEQ>"\"" {
+   m_lexeme += yytext;
+   m_position.column += yyleng;
+}
 
 <MODE_CHARSEQ,MODE_STRING>{HEXESCAPE} {
    m_lexeme += yytext;
@@ -185,69 +192,61 @@ STRCHAR           [^\'\"\\\n\b\v\t\f\r]
    m_position.column += yyleng;
 }
 
-<MODE_CHARSEQ>"'" {
-   ++m_position.column;
-   BEGIN(INITIAL);
-   return do_charseq(tok);
-}
-
-<MODE_CHARSEQ,MODE_STRING>"\"" {
-   m_lexeme += yytext;
-   m_position.column += yyleng;
-}
-
 <MODE_CHARSEQ>{NEWL} {
+   do_error(tok,"raw return char in character_set");
    m_position.column = 1; ++m_position.row;
+   m_lexeme = "";
    BEGIN(INITIAL);
-   return do_error(tok,"raw return char in character_set",0);
+   return tok.m_token_id = quan_lexer::token::error;
 }
 
    /*---- common string  and character sequence --- */
 
 <MODE_CHARSEQ,MODE_STRING>"\\"{NOTNL} {
-   m_lexeme += yytext;
-   //BEGIN(INITIAL);
-   return do_error(tok,"unknown escape char",yyleng +1);
+   do_error(tok,"unknown escape char");
+   m_lexeme = "";
+   m_position.column += yyleng;
+   return tok.m_token_id = quan_lexer::token::error;
 }
 
-<MODE_CHARSEQ>{STRCHAR}+ {
+<MODE_STRING,MODE_CHARSEQ>{STRCHAR}+  {
    m_lexeme += yytext;
    m_position.column += yyleng;
 }
 
    /*--------------comment (multiline)  -----------------------------*/
 
-<MODE_ML_COMMENT>[^*\n]* {
-   /* eat anything that's not a '*'  */
-}
-
-<MODE_ML_COMMENT>"*"+[^*/\n]* {
-   /* eat '*'s not followed by '/'s */
-}
-
-<MODE_ML_COMMENT>"\n"  {
-   m_position.column = 1; ++m_position.row;
-}
-
 <MODE_ML_COMMENT>"*"+"/"  {
    BEGIN(INITIAL);
 }
 
+<MODE_ML_COMMENT>{NEWL}  {
+   //update the file pos
+   m_position.column = 1; ++m_position.row;
+}
+
+<MODE_ML_COMMENT>.  {
+   /* eat anything else  */
+}
+
    /*--------------comment (single line)  -----------------------------*/
 
-<MODE_SL_COMMENT>[^\n]    /* eat up anything except a return */
-<MODE_SL_COMMENT>"\n" {
+<MODE_SL_COMMENT>{NEWL} {
    m_position.column = 1; ++m_position.row;
    BEGIN(INITIAL);
 }
 
+<MODE_SL_COMMENT>. {
+   /* eat anything else */
+}
+
    /*anything else */
 
-. {
-   init_tok(tok);
-   tok.m_token_id = quan_lexer::token::undefined;
-   tok.m_lexeme = yytext;
-   return tok.m_token_id = yytext[0] ;
+<INITIAL,MODE_CHARSEQ,MODE_STRING>. {
+   do_error(tok,"undefined character");
+   m_lexeme = "";
+   m_position.column += yyleng;
+   return tok.m_token_id = quan_lexer::token::error;
 }
 
 %%

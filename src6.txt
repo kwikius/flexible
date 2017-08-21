@@ -8,13 +8,43 @@
    
    newl = '\n' | "\r\n" ;
 
+   /*
+       Some characters cannot be represented as text, so they must be represented using escapes.
+       
+       a '\' character read in a string literal represents the start of an escaped character
+       Valid characters following escape are \"'abfnrtv
+       To represent arbitrary numbers use the syntax
+       '\d(65)'  // is the character value decimal 65
+       '\x(FF)'  // is the character value hex FF
+
+       Example
+       my_lit = "*\tline1 = \"\d(65)\d(66)\d(67)\"\n*\tline2 = \'\x(42)\'\x(43)\n*\tline3 = \o(103)\n";
+       my_lit represents a string_literal which should produce when formatted :
+         
+       *    line1 = "ABC" 
+       *    line2 = 'B'C
+       *    line3 = C
+
+       Characters in single quotes represent a character_set. 
+       Characters in double quotes represent a string. 
+       A character_set with a single character is equivalent 
+       to a string with a single character and is known as a single_character.
+       The empty_set can be represented by "" or ''
+   */
+
    state string_literal {
 
-     escape_char = '"\\ntr';
-     escape_seq  = '\\' escape_char ;
-
-     "\""                     [ popfpos, emit String, jump main ]
-     escape_seq  | . ^ '\n'   [ append $ ] // append anything else but newl
+     '"'      [ popfpos, emit String, jump main ]
+     "\\\'"    [ append "\'" ]
+     "\\\""    [ append "\"" ]
+     "\\a"     [ append "\a" ]
+     "\\b"     [ append "\b" ]
+     "\\f"     [ append "\f" ]
+     "\\n"     [ append "\n"]
+     "\\r"     [ append "\r"]
+     "\\t"     [ append "\t"]
+     "\\v"     [ append "\v"]
+     .         [ append $ ] // append anything else
    } 
 
    state main {
@@ -34,7 +64,7 @@
 
       "/*"      [ jump mlcomment ]  
       "//"      [ jump slcomment ] 
-      "\""      [ pushfpos, jump string_literal ] 
+      '"'      [ pushfpos, jump string_literal ] 
 
       "keyword" [ append $, emit Keyword   ]
       int       [ append $, emit Integer  ]

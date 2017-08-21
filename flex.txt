@@ -1,10 +1,10 @@
 
 
 %option noyywrap
-%x COMMENT_MODE
-%x SL_COMMENT_MODE
-%x STRING_MODE
-%x CHARSEQ_MODE
+%x MODE_ML_COMMENT
+%x MODE_SL_COMMENT
+%x MODE_STRING
+%x MODE_CHARSEQ
 
 %{
 
@@ -16,7 +16,7 @@
 
 #define YY_NO_UNISTD_H
 
-#include "SlkParse.h"
+#include "token_id.hpp"
 
 #include "src_lexer.hpp"
 #include <quan/atomicstring.hpp>
@@ -26,7 +26,7 @@
 
 #define yyterminate() \
    tok.m_position = m_position;\
-   return tok.m_token_id = quan_lexer::END_OF_INPUT;
+   return tok.m_token_id = quan_lexer::token::eof;
 
 #undef yywrap
 #define yywrap() 1
@@ -52,47 +52,61 @@ int yyFlexLexer::yylex(){assert(false); return 0;}
 BLANK             [ \t]
 ALPHA             [A-Za-z]
 DIGIT             [0-9]
+HEXDIGIT          [0-9A-Fa-f]
 OPERATOR          [!&-+*/=~|<>^?~%#@]
 PUNCT             [\(\)\{\}\[\]\:\;\,\.\"]
 NOTNL             .
 IDCHAR            {ALPHA}|"_"
 UNIXNEWL          [\n]
 MACNEWL           [\r]
-
+ESCCHAR           [\'\"\\btnvfr]
 NEWL              {UNIXNEWL}|({MACNEWL}{UNIXNEWL}?)
 NONESCAPECHAR     {ALPHA}|{DIGIT}|{OPERATOR}|{PUNCT}|"_"
-
+HEXESCAPE         "\\x\("{HEXDIGIT}+"\)"
+DECESCAPE         "\\d\("{DIGIT}+"\)"
+CHARESCAPE        "\\"{ESCCHAR}
  /* any of 256 source characters */
 ANY               ({NOTNL}|{NEWL})
- /* normal string character: any but quote,  or backslash */
-STRCHAR           [^\"\\]
-
- /* normal char character: any but chquote, or backslash */
-CHARSEQCHAR       [^\'\\]       
+ /* normal string/char seq character: any but quote,  or backslash */
+STRCHAR           [^\'\"\\\n\b\v\t\f\r]
 
 %%  /*############################### */
 
   /*----------------------  initial -----------------------*/
 
-<INITIAL>{BLANK}+  {m_position.column += yyleng;}
-<INITIAL>{NEWL}    {m_position.column = 1; ++m_position.row;}
-<INITIAL>"\""   {
+<INITIAL>{BLANK}+ {
+   m_position.column += yyleng;
+}
+
+<INITIAL>{NEWL} {
+   m_position.column = 1; ++m_position.row;
+}
+
+<INITIAL>"\"" {
+   // start string mode
    m_lexeme = "";
    tok.m_position = m_position;
    ++m_position.column;
-   BEGIN(STRING_MODE);
+   BEGIN(MODE_STRING);
 }
 
-<INITIAL>"'"   {
+<INITIAL>"'" {
+   // start charseq mode
    m_lexeme = "";
    tok.m_position = m_position;
    ++m_position.column;
-   BEGIN(CHARSEQ_MODE);
+   BEGIN(MODE_CHARSEQ);
 }
 
-<INITIAL>"/*"        BEGIN(COMMENT_MODE);
+<INITIAL>"/*" {
+     // start of multi line comment
+      BEGIN(MODE_ML_COMMENT);
+}
 
-<INITIAL>"//"        BEGIN(SL_COMMENT_MODE);
+<INITIAL>"//" {
+    // start of single line comment
+      BEGIN(MODE_SL_COMMENT);
+}
 
 <INITIAL>"state" {
    return do_tokenID(tok,quan_lexer::STATE_);
@@ -123,7 +137,6 @@ CHARSEQCHAR       [^\'\\]
 }
 
 <INITIAL>{IDCHAR}({IDCHAR}|{DIGIT})* {
-
    do_string_handle(tok);
    return tok.m_token_id = quan_lexer::NAME_;
 }
@@ -136,105 +149,105 @@ CHARSEQCHAR       [^\'\\]
    return do_tokenID(tok);
 }
 
- /* ------------------- string  ---------------------*/
+   /* ------------------- string  ---------------------*/
 
-<STRING_MODE>"\"" {
+<MODE_STRING>"\"" {
    ++m_position.column;
    BEGIN(INITIAL);
    return do_string_literal(tok);
 }
 
-<STRING_MODE>{STRCHAR}+  {
+<MODE_STRING>{NEWL} {
+   m_position.column = 1; ++m_position.row;
+   BEGIN(INITIAL);
+   return do_error(tok,"raw return char in string literal",0);
+}
+
+<MODE_STRING>{STRCHAR}+  {
    m_lexeme += yytext;
    m_position.column += yyleng;
 }
 
- /*--------------charseq -----------------------------*/
+   /*--------------charseq -----------------------------*/
 
-<CHARSEQ_MODE>"'" {
+<MODE_CHARSEQ,MODE_STRING>{HEXESCAPE} {
+   m_lexeme += yytext;
+   m_position.column += yyleng;
+}
+
+<MODE_CHARSEQ,MODE_STRING>{DECESCAPE} {
+   m_lexeme += yytext;
+   m_position.column += yyleng;
+}
+
+<MODE_CHARSEQ,MODE_STRING>{CHARESCAPE} {
+   m_lexeme += yytext;
+   m_position.column += yyleng;
+}
+
+<MODE_CHARSEQ>"'" {
    ++m_position.column;
    BEGIN(INITIAL);
    return do_charseq(tok);
 }
 
-<CHARSEQ_MODE>{CHARSEQCHAR}+ {
+<MODE_CHARSEQ,MODE_STRING>"\"" {
    m_lexeme += yytext;
    m_position.column += yyleng;
 }
 
- /*---- common string --- */
-
-<CHARSEQ_MODE,STRING_MODE>"\\b" {
-   m_lexeme += "\b";
-   m_position.column += 2;
+<MODE_CHARSEQ>{NEWL} {
+   m_position.column = 1; ++m_position.row;
+   BEGIN(INITIAL);
+   return do_error(tok,"raw return char in character_set",0);
 }
 
-<CHARSEQ_MODE,STRING_MODE>"\\t" {
-   m_lexeme += "\t";
-   m_position.column += 2;
+   /*---- common string  and character sequence --- */
+
+<MODE_CHARSEQ,MODE_STRING>"\\"{NOTNL} {
+   m_lexeme += yytext;
+   //BEGIN(INITIAL);
+   return do_error(tok,"unknown escape char",yyleng +1);
 }
 
-<CHARSEQ_MODE,STRING_MODE>"\\n" {
-   m_lexeme += "\n";
-   m_position.column += 2;
+<MODE_CHARSEQ>{STRCHAR}+ {
+   m_lexeme += yytext;
+   m_position.column += yyleng;
 }
 
-<CHARSEQ_MODE,STRING_MODE>"\\v" {
-   m_lexeme += "\v";
-   m_position.column += 2;
+   /*--------------comment (multiline)  -----------------------------*/
+
+<MODE_ML_COMMENT>[^*\n]* {
+   /* eat anything that's not a '*'  */
 }
 
-<CHARSEQ_MODE,STRING_MODE>"\\f" {
-   m_lexeme += "\f";
-   m_position.column += 2;
+<MODE_ML_COMMENT>"*"+[^*/\n]* {
+   /* eat '*'s not followed by '/'s */
 }
 
-<CHARSEQ_MODE,STRING_MODE>"\\r" {
-   m_lexeme += "\r";
-   m_position.column += 2;
+<MODE_ML_COMMENT>"\n"  {
+   m_position.column = 1; ++m_position.row;
 }
 
-<CHARSEQ_MODE,STRING_MODE>"\\\\" {
-   m_lexeme += "\\";
-   m_position.column += 2;
-}
-<CHARSEQ_MODE,STRING_MODE>"\\\'" {
-   m_lexeme += "\'";
-   m_position.column += 2;
-}
-<CHARSEQ_MODE,STRING_MODE>"\\\"" {
-   m_lexeme += "\"";
-   m_position.column += 2;
+<MODE_ML_COMMENT>"*"+"/"  {
+   BEGIN(INITIAL);
 }
 
-<CHARSEQ_MODE,STRING_MODE>"\\0" {
-   m_lexeme += "\0";
-   m_position.column += 2;
-}
+   /*--------------comment (single line)  -----------------------------*/
 
-  /*--------------comment (multiline)  -----------------------------*/
-
-<COMMENT_MODE>[^*\n]*         /* eat anything that's not a '*'  */
-<COMMENT_MODE>"*"+[^*/\n]*    /* eat up '*'s not followed by '/'s */
-<COMMENT_MODE>"\n"        {m_position.column = 1; ++m_position.row;}
-<COMMENT_MODE>"*"+"/"      BEGIN(INITIAL);
-
- /*--------------comment (single iline)  -----------------------------*/
-
-<SL_COMMENT_MODE>[^\n]    /* eat up anything except a return */
-<SL_COMMENT_MODE>"\n" {
+<MODE_SL_COMMENT>[^\n]    /* eat up anything except a return */
+<MODE_SL_COMMENT>"\n" {
    m_position.column = 1; ++m_position.row;
    BEGIN(INITIAL);
 }
 
- /*anything else */
+   /*anything else */
 
 . {
-      init_tok(tok);
-      tok.m_token_id = quan_lexer::UNDEFINED;
-      tok.m_lexeme = yytext;
-      BEGIN(INITIAL);
-      return tok.m_token_id = yytext[0] ;
+   init_tok(tok);
+   tok.m_token_id = quan_lexer::token::undefined;
+   tok.m_lexeme = yytext;
+   return tok.m_token_id = yytext[0] ;
 }
 
 %%

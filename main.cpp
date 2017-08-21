@@ -8,7 +8,7 @@
 //#include "lexeme.hpp"
 
 #include "src_lexer.hpp"
-#include "SlkParse.h"
+#include "token_id.hpp"
 
 /*
 int do_parse(std::string const & filename, std::ostream* out)
@@ -84,7 +84,7 @@ int main (int argc, char *argv[])
       quan_lexer::src_lexer lex(argv[1],&in,out);
 
       quan_lexer::token tok;
-      while (lex.yylex(tok) != quan_lexer::END_OF_INPUT){
+      while (lex.yylex(tok) != quan_lexer::token::eof){
          *out << "---- " << tok.m_position << " ----\n";
          if ( tok.m_token_id < 256){
             *out << "ID["<< tok.m_token_id << "]";
@@ -111,11 +111,23 @@ int main (int argc, char *argv[])
                case  quan_lexer::CHARSEQ_:
                   *out << "charseq";
                   break;
-               case  quan_lexer::UNDEFINED:
+               case  quan_lexer::CHAR:
+                  *out << "char" ;
+                  break;
+               case  quan_lexer::EMPTY_SET:
+                  *out << "empty_set";
+                  break;
+               case  quan_lexer::token::error:
+                  *out << "ERROR" ;
+                  ++errorcount;
+                  break;
+               case  quan_lexer::token::undefined:
                   *out << "undefined" ;
+                  ++errorcount;
                   break;
                default:
                   *out << "UNKNOWN"; 
+                  ++errorcount;
                   break;
             }
 

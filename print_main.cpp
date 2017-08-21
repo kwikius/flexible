@@ -50,10 +50,6 @@ bool print_toks(std::string const & filename, std::istream & in,std::ostream& ou
                   out << "ERROR" ;
                   ++errorcount;
                   break;
-               case  quan_lexer::token::undefined:
-                  out << "undefined" ;
-                  ++errorcount;
-                  break;
                default:
                   out << "UNKNOWN"; 
                   ++errorcount;

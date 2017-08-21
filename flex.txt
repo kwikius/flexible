@@ -13,6 +13,7 @@
 #include <iostream>
 #include <string>
 #include <cassert>
+#include <cstdlib>
 
 #define YY_NO_UNISTD_H
 
@@ -46,14 +47,15 @@ int yyFlexLexer::yylex(){assert(false); return 0;}
 
 %} /*############################## */
 
- /* scanner */
+ /* scanner  "+*?|&!^" */
 
 BLANK             [ \t]
 ALPHA             [A-Za-z]
 DIGIT             [0-9]
 HEXDIGIT          [0-9A-Fa-f]
-OPERATOR          [!&-+*/=~|<>^?~%#@]
-PUNCT             [\(\)\{\}\[\]\:\;\,\.\"]
+BINARYDIGIT       [01]
+OPERATOR          [!&+*=|^?.$]
+PUNCT             [\(\)\{\}\[\]\;\,\.\"]
 NOTNL             .
 IDCHAR            {ALPHA}|"_"
 UNIXNEWL          [\n]
@@ -61,8 +63,10 @@ MACNEWL           [\r]
 ESCCHAR           [\'\"\\abfnrtv]
 NEWL              {UNIXNEWL}|({MACNEWL}{UNIXNEWL}?)
 NONESCAPECHAR     {ALPHA}|{DIGIT}|{OPERATOR}|{PUNCT}|"_"
-HEXESCAPE         "\\x\("{HEXDIGIT}+"\)"
-DECESCAPE         "\\d\("{DIGIT}+"\)"
+HEXESCAPECHAR     "x\("{HEXDIGIT}+
+DECESCAPECHAR     "d\("{DIGIT}+
+BINARYESCAPECHAR  "B\("{BINARYDIGIT}+
+NUMERICESCAPE     "\\"({HEXESCAPECHAR}|{DECESCAPECHAR}|{BINARYESCAPECHAR})"\)"
 CHARESCAPE        "\\"{ESCCHAR}
  /* any of 256 source characters */
 ANY               ({NOTNL}|{NEWL})
@@ -143,7 +147,7 @@ STRCHAR           [^\'\"\\\n\a\b\v\t\f\r]
    return do_tokenID(tok,quan_lexer::DOT_DOT_);
 }
 
-<INITIAL>"$"|"."|"="|","|"|"|"&"|";"|"{"|"}"|"?"|"*"|"+"|"("|")"|"!"|"["|"]" {
+<INITIAL>"$"|"."|"="|","|"|"|"&"|"^"|";"|"{"|"}"|"?"|"*"|"+"|"("|")"|"!"|"["|"]" {
    return do_tokenID(tok);
 }
 
@@ -154,6 +158,11 @@ STRCHAR           [^\'\"\\\n\a\b\v\t\f\r]
    ++m_position.column;
    BEGIN(INITIAL);
    return do_string_literal(tok);
+}
+
+<MODE_STRING>"\'" {
+   m_lexeme += yytext;
+   m_position.column += yyleng;
 }
 
 <MODE_STRING>{NEWL} {
@@ -177,18 +186,84 @@ STRCHAR           [^\'\"\\\n\a\b\v\t\f\r]
    m_position.column += yyleng;
 }
 
-<MODE_CHARSEQ,MODE_STRING>{HEXESCAPE} {
-   m_lexeme += yytext;
+<MODE_CHARSEQ,MODE_STRING>{NUMERICESCAPE} {
+   // e.g \x(ff)\d(127)\B(101);
+   int base = 0;
+   switch(yytext[1]){
+      case 'x':
+         base= 16;
+         break;
+      case 'd':
+         base = 10;
+         break;
+      case 'B':
+         base = 2;
+         break;
+      default:
+         //shouldnt get here
+         break;
+   }
+   char* end = nullptr;
+   long char_value  = strtol(yytext+3,&end,base);
+   bool error = false;
+   if ( (end == nullptr) || (*end != ')')){
+       do_error(tok,"numeric escape too big for char");
+       error = true;
+   }else{
+      if (char_value > 255){
+        do_error(tok,"numeric escape too big for char");
+        error = true;
+      }
+   }
    m_position.column += yyleng;
+   if (!error){
+      m_lexeme += static_cast<char>(char_value);
+   }else{
+     m_lexeme = "";
+     return tok.m_token_id = quan_lexer::token::error; 
+   }
 }
 
-<MODE_CHARSEQ,MODE_STRING>{DECESCAPE} {
-   m_lexeme += yytext;
-   m_position.column += yyleng;
-}
 
 <MODE_CHARSEQ,MODE_STRING>{CHARESCAPE} {
-   m_lexeme += yytext;
+   // [\'\"\\abfnrtv]
+   switch (yytext[1]){
+       case '\'':
+         m_lexeme += '\'';
+         break;
+       case '"':
+         m_lexeme += '"';
+         break;
+       case '\\':
+         m_lexeme += '\\';
+         break;
+       case 'a':
+         m_lexeme += '\a';
+         break;
+      case 'b':
+         m_lexeme += '\b';
+         break;
+      case 'f':
+         m_lexeme += '\f';
+         break;    
+      case 'n':
+         m_lexeme += '\n';
+         break;
+      case 'r':
+         m_lexeme += '\r';
+         break;
+      case 't':
+         m_lexeme += '\t';
+         break;
+      case 'v':
+         m_lexeme += '\v';
+         break;
+      default:
+        do_error(tok,"Unhandled escape sequence ,please report");
+        m_position.column += yyleng;
+        return tok.m_token_id = quan_lexer::token::error;
+        break;
+   }
    m_position.column += yyleng;
 }
 

@@ -21,9 +21,9 @@ namespace quan_lexer {
    , APPEND_ 
    , PUSHFPOS_ 
    , POPFPOS_  
-   , STRING_LITERAL_  
    , DEFAULT_
    , STATE_ 
+   , STRING_LITERAL_  
    , DOT_DOT_ 
    , CHARSEQ_
    , CHAR

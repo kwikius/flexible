@@ -15,7 +15,7 @@ namespace quan_lexer {
    */
 
    enum TokenID { 
-     NAME_ = 300
+     IDENTIFIER = 300
    , EMIT_ 
    , JUMP_  
    , APPEND_ 

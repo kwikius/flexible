@@ -6,7 +6,7 @@
 
 quan_lexer::src_lexer::src_lexer(
    std::string const & filename_in,
-   std::ifstream* in,
+   std::istream* in,
    std::ostream* out
 )
 : yyFlexLexer{in,out}
@@ -42,10 +42,10 @@ int quan_lexer::src_lexer::do_tokenID(token_type& tok,short ID)
    return tok.m_token_id = ID;
 }
 
-int quan_lexer::src_lexer::do_string_handle(token_type & tok)
+int quan_lexer::src_lexer::do_identifier(token_type & tok)
 {
    init_tok(tok);
-   return tok.m_token_id = quan_lexer::NAME_;
+   return tok.m_token_id = quan_lexer::IDENTIFIER;
 }
 
 // no pos set up here as string literal is parsed variously

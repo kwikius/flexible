@@ -136,7 +136,7 @@ STRCHAR           [^\'\"\\\n\a\b\v\t\f\r]
 }
 
 <INITIAL>{IDCHAR}({IDCHAR}|{DIGIT})* {
-   return do_string_handle(tok);
+   return do_identifier(tok);
 }
 
 <INITIAL>".." {

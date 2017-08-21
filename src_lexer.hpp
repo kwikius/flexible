@@ -13,7 +13,7 @@ namespace quan_lexer{
    struct src_lexer : yyFlexLexer {
       src_lexer(
          std::string const & filename_in,
-         std::ifstream * in,
+         std::istream * in,
          std::ostream * out
       );
       
@@ -23,7 +23,7 @@ namespace quan_lexer{
       std::ostream & out() ;
     private:
       void init_tok(token_type& tok);
-      int do_string_handle(token_type & tok);
+      int do_identifier(token_type & tok);
       int do_string_literal(token_type& tok);
       int do_charseq(token_type& tok);
       int do_tokenID(token_type& tok);

@@ -6,7 +6,7 @@
 #endif
 #include <quan/lexer/sourcepos.hpp>
 #include "token.hpp"
-#include <fstream>
+#include <iostream>
 
 namespace quan_lexer{
 

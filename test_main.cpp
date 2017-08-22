@@ -197,6 +197,7 @@ namespace {
     }
 
     char const numeric_escapes1 [] = "\"a\\x(62)\\d(99)\\B(01100100)e\"";
+    // e.g a\x(62)\d(99)\B(01100100)e or abcde
     void test7 (quan_lexer::token const & tok, int iter)
     {
        QUAN_CHECK(tok.m_token_id == quan_lexer::STRING_LITERAL_)

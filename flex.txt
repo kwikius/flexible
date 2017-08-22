@@ -10,17 +10,13 @@
 
   //####################
 
-#include <iostream>
-#include <string>
 #include <cassert>
 #include <cstdlib>
 
 #define YY_NO_UNISTD_H
 
 #include "token_id.hpp"
-
 #include "src_lexer.hpp"
-#include <quan/atomicstring.hpp>
 
 #define YY_DECL int quan_lexer::src_lexer::yylex(token_type & tok)
 
@@ -46,8 +42,6 @@ using std::cerr;
 int yyFlexLexer::yylex(){assert(false); return 0;}
 
 %} /*############################## */
-
- /* scanner  "+*?|&!^" */
 
 BLANK             [ \t]
 ALPHA             [A-Za-z]
@@ -223,7 +217,6 @@ STRCHAR           [^\'\"\\\n\a\b\v\t\f\r]
      return tok.m_token_id = quan_lexer::token::error; 
    }
 }
-
 
 <MODE_CHARSEQ,MODE_STRING>{CHARESCAPE} {
    // [\'\"\\abfnrtv]

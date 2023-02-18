@@ -1,16 +1,35 @@
 
    /*** sample lexer ***/
 
-   state string_literal    ;
-   state mlcomment ;
-   state slcomment ;
-   state main default;
+/*
+  The lexer can be in various states , which are defined here
+  A new state is entered when a particular character is encountered.
+  For example if in the main state and a " is encountered then run then enter the string literal state
+  The first state definition is the default state
+*/
+
+   state main, string_literal, mlcomment, slcomment ;
+
    
+/*
+   Emit functions may also be predefined or they could be deduced and stubs used to get things working
+*/
+   emit String, Keyword, Integer, Real, Ident;
+
+/*
+   The underlying engine calls supplied library which has functions that take input buffer as arg and return a token
+*/
+   
+/*
+  expressions describe patterns of characters for matching. They can be global or local to a state in scope
+*/
+   // a global expression named newl
    newl = '\n' | "\r\n" ;
  
    /*
-       Some characters cannot be represented as text, so they must be represented using escapes.
-       
+       Within an expression, some characters cannot be represented as text, 
+       so they must be represented using escapes.
+
        a '\' character read in a string literal represents the start of an escaped character
        Valid characters following escape are \"'abfnrtv
        To represent arbitrary numbers use the syntax
@@ -29,21 +48,19 @@
        Characters in double quotes represent a string. 
        A character_set with a single character is equivalent 
        to a string with a single character and is known as a single_character.
+       A sequence can be represented using double dots
+       e.g 'A' .. 'Z'
        The empty_set can be represented by "" or ''
    */
 
+   /*
+     lexing creates a string, which is passed to the emit functions which return a token
+   */
+
+
    state string_literal {
 
-     '"'       [ popfpos, emit String, jump main ]
-     "\\\'"    [ append "\'" ]
-     "\\\""    [ append "\"" ]
-     "\\a"     [ append "\a" ]
-     "\\b"     [ append "\b" ]
-     "\\f"     [ append "\f" ]
-     "\\n"     [ append "\n"]
-     "\\r"     [ append "\r"]
-     "\\t"     [ append "\t"]
-     "\\v"     [ append "\v"]
+     '"'       [ emit String, state main ]
      .         [ append $ ] // append anything else
    } 
 
@@ -62,26 +79,26 @@
                      digit+ ( '.' exponent? | exponent )  ;
        ws         = ( space | newl )+       ;
 
-      "/*"      [ jump mlcomment ]  
-      "//"      [ jump slcomment ] 
-      '"'      [ pushfpos, jump string_literal ] 
+      "/*"      [ state mlcomment ]  
+      "//"      [ state slcomment ] 
+      '"'       [ state string_literal ] 
 
-      "keyword" [ append $, emit Keyword   ]
-      int       [ append $, emit Integer  ]
-      real      [ append $, emit Real     ]
-      ws        [ /* eat whitespace*/    ]     
+      "keyword" [ emit Keyword   ]
+      int       [ emit Integer  ]
+      real      [ emit Real     ]
+      ws        []     
       '(' | ')' [ emit $ ]
-      ident     [ append $, emit Ident ]
+      ident     [ emit Ident ]
    }
 
    state mlcomment {
      
-      "*/"      [ jump main ] 
+      "*/"      [ state main ] 
       .         [] // eat anything else
    }
 
    state slcomment {
 
-      newl      [ jump main ]
+      newl      [ state main ]
       .         [ ] //eat anything else
    }

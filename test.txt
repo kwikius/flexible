@@ -1,0 +1,15 @@
+"dummy"
+'\'x'
+'"x'
+'\"x'
+'\"'
+'\b\t\n\r\x(0)'
+'\x(FF)'
+'\d(100))'
+'\d(0)'
+'abcd'
+'\\\\\bbcdef1234567 '
+"hello there. Let us try a piece of long text\n"
+'\''
+
+"dummy"

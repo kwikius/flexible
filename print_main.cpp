@@ -13,8 +13,8 @@ bool print_toks(std::string const & filename, std::istream & in,std::ostream& ou
       quan_lexer::src_lexer lex(filename,&in,&out);
 
       quan_lexer::token tok;
-      while (lex.yylex(tok) != quan_lexer::token::eof){
-         out << "---\"" << tok.m_filename << "\"," << tok.m_position << "\n";
+      while (lex.yylex(tok) != quan_lexer::eof){
+         out << "---\"" << tok.filepos.filename << "\"," << tok.filepos.position << "\n";
          if ( tok.m_token_id < 256){
             out << "ID["<< tok.m_token_id << "]";
          }else{
@@ -46,12 +46,12 @@ bool print_toks(std::string const & filename, std::istream & in,std::ostream& ou
                case  quan_lexer::EMPTY_SET:
                   out << "empty_set";
                   break;
-               case  quan_lexer::token::error:
+               case  quan_lexer::error:
                   out << "ERROR" ;
                   ++errorcount;
                   break;
                default:
-                  out << "UNKNOWN"; 
+                  out << "UNKNOWN";
                   ++errorcount;
                   break;
             }
@@ -92,7 +92,7 @@ int print_main (int argc, char *argv[])
       std::cout << "couldnt open \"" << argv[1] << "\"\n";
       return EXIT_FAILURE;
    }
-  
+
    std::ostream * out = 0;
 
    if( argc > 2){

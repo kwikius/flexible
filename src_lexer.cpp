@@ -24,8 +24,7 @@ std::ostream & quan_lexer::src_lexer::out()
 
 void quan_lexer::src_lexer::init_tok(token_type& tok)
 {
-   tok.m_filename = m_filename;
-   tok.m_position = m_position;
+   tok.filepos = {m_filename,m_position};
    tok.m_lexeme = yytext;
    m_position.column += yyleng;
 }
@@ -62,7 +61,7 @@ int quan_lexer::src_lexer::do_string_literal(token_type& tok)
          tok.m_token_id = quan_lexer::STRING_LITERAL_;
          break;
    }
-   tok.m_filename = m_filename;
+   tok.filepos.filename = m_filename;
    tok.m_lexeme = m_lexeme;
    return tok.m_token_id;
 }
@@ -80,15 +79,14 @@ int quan_lexer::src_lexer::do_charseq(token_type& tok)
          tok.m_token_id = quan_lexer::CHARSEQ_;
          break;
    }
-   tok.m_filename = m_filename;
+   tok.filepos.filename = m_filename;
    tok.m_lexeme = m_lexeme;
    return tok.m_token_id;
 }
 
 void quan_lexer::src_lexer::do_error(token_type& tok, const char* msg)
 {
-   tok.m_filename = m_filename;
-   tok.m_position = m_position;
+   tok.filepos = {m_filename,m_position};
    tok.m_lexeme = '"';
    tok.m_lexeme += yytext;
    tok.m_lexeme += "\" " ;

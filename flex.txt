@@ -21,8 +21,8 @@
 #define YY_DECL int quan_lexer::src_lexer::yylex(token_type & tok)
 
 #define yyterminate() \
-   tok.m_position = m_position;\
-   return tok.m_token_id = quan_lexer::token::eof;
+   tok.filepos.position = m_position;\
+   return tok.m_token_id = quan_lexer::eof;
 
 #undef yywrap
 #define yywrap() 1
@@ -82,15 +82,15 @@ STRCHAR           [^\'\"\\\n\a\b\v\t\f\r]
 <INITIAL>"\"" {
    // start string mode
    m_lexeme = "";
-   tok.m_position = m_position;
-   ++m_position.column;
+   tok.filepos.position = m_position;
+   ++tok.filepos.position.column;
    BEGIN(MODE_STRING);
 }
 
 <INITIAL>"'" {
    // start charseq mode
    m_lexeme = "";
-   tok.m_position = m_position;
+   tok.filepos.position = m_position;
    ++m_position.column;
    BEGIN(MODE_CHARSEQ);
 }
@@ -164,7 +164,7 @@ STRCHAR           [^\'\"\\\n\a\b\v\t\f\r]
    m_position.column = 1; ++m_position.row;
    m_lexeme = "";
    BEGIN(INITIAL);
-   return tok.m_token_id = quan_lexer::token::error;
+   return tok.m_token_id = quan_lexer::error;
 }
 
    /*--------------charseq -----------------------------*/
@@ -214,7 +214,7 @@ STRCHAR           [^\'\"\\\n\a\b\v\t\f\r]
       m_lexeme += static_cast<char>(char_value);
    }else{
      m_lexeme = "";
-     return tok.m_token_id = quan_lexer::token::error; 
+     return tok.m_token_id = quan_lexer::error;
    }
 }
 
@@ -238,7 +238,7 @@ STRCHAR           [^\'\"\\\n\a\b\v\t\f\r]
          break;
       case 'f':
          m_lexeme += '\f';
-         break;    
+         break;
       case 'n':
          m_lexeme += '\n';
          break;
@@ -254,7 +254,7 @@ STRCHAR           [^\'\"\\\n\a\b\v\t\f\r]
       default:
         do_error(tok,"Unhandled escape sequence ,please report");
         m_position.column += yyleng;
-        return tok.m_token_id = quan_lexer::token::error;
+        return tok.m_token_id = quan_lexer::error;
         break;
    }
    m_position.column += yyleng;
@@ -265,7 +265,7 @@ STRCHAR           [^\'\"\\\n\a\b\v\t\f\r]
    m_position.column = 1; ++m_position.row;
    m_lexeme = "";
    BEGIN(INITIAL);
-   return tok.m_token_id = quan_lexer::token::error;
+   return tok.m_token_id = quan_lexer::error;
 }
 
    /*---- common string  and character sequence --- */
@@ -274,7 +274,7 @@ STRCHAR           [^\'\"\\\n\a\b\v\t\f\r]
    do_error(tok,"unknown escape char");
    m_lexeme = "";
    m_position.column += yyleng;
-   return tok.m_token_id = quan_lexer::token::error;
+   return tok.m_token_id = quan_lexer::error;
 }
 
 <MODE_STRING,MODE_CHARSEQ>{STRCHAR}+  {
@@ -314,7 +314,7 @@ STRCHAR           [^\'\"\\\n\a\b\v\t\f\r]
    do_error(tok,"undefined character");
    m_lexeme = "";
    m_position.column += yyleng;
-   return tok.m_token_id = quan_lexer::token::error;
+   return tok.m_token_id = quan_lexer::error;
 }
 
 %%

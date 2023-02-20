@@ -1,0 +1,31 @@
+
+///*
+//from https://github.com/Genivia/RE-flex/blob/master/examples/flexexample11.lxx
+//
+//var     [A-Za-z_][A-Za-z0-9_]*
+//exp     [Ee][-+]?[0-9]+
+//num     [0-9]*([0-9]|\.[0-9]|[0-9]\.)[0-9]*{exp}?
+//
+//%%
+//
+//\s          // ignore space
+//\"[^"]*\"   { return yy::parser::make_STR(yytext, location()); }
+//{var}       { return yy::parser::make_VAR(yytext, location()); }
+//{num}       { return yy::parser::make_NUM(strtod(yytext, NULL), location()); }
+//[-+*/=();]  { return yy::parser::symbol_type(*yytext, location()); }
+//<<EOF>>     { return yy::parser::make_EOF(location()); }
+//
+//%%
+//*/
+
+state main{
+
+   alpha    = ('A' .. 'Z' | 'a' .. 'z');
+   digit    = ('0' .. '9');
+   var      = ( alpha | '_' ) (alpha | digit | '_')* ;
+   exp      = 'Ee' '-+'? digit+;
+   num      = digit* ( digit | '.' digit | digit '.') digit* exp?;
+   string   = '"' (!'"')* '"' ;
+   punct   = '-+*/=();'  ;
+}
+

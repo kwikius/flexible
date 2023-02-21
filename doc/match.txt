@@ -28,4 +28,18 @@ m = 'a' . 'c'  | "abc";
 
 skip one character
 
+should . mean any non newline ch or any char
+should mean anything
+
+any_but_newl = . ^ newl;
+
+match a html comment  in flexible syntax
+
+html_matcher = "<!--" . ^ "-->" "-->" ;
+html_matcher = "<!--" ( . ^ "-->" ) "-->" ; // for clarity
+
+// requires N lookahead
+// Allow only one lookahead?
+html_matcher = "<!--" ... "-->" ;
+
 

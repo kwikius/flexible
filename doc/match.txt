@@ -38,8 +38,12 @@ match a html comment  in flexible syntax
 html_matcher = "<!--" . ^ "-->" "-->" ;
 html_matcher = "<!--" ( . ^ "-->" ) "-->" ; // for clarity
 
-// requires N lookahead
-// Allow only one lookahead?
+// can do with one lookahead I think
+to matchers one is matching any other is matching "-->" ( when fails just keeps starting)
+when terminator matcher succeeds matcher succeeds
+
 html_matcher = "<!--" ... "-->" ;
+
+begin matcher , middle_matcher, end_matcher
 
 

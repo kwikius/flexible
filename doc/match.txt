@@ -1,0 +1,31 @@
+
+match algorithm for alternatives
+
+
+// both start symbols are same
+// then the second matcher is redundant
+// dont need to warn
+// except maybe for optimisation
+m1 = 'a' | "ab" ;
+m2 = "ab" | 'a' ;
+
+m1 == m2 = true;
+
+match(m , 'a' )  == true
+
+both above should work the same way
+
+m = "ab" | "abc";
+m = "abc" | "ab";
+
+also means  | | should be a sequence
+
+match(m, "ab") == true
+
+// matchers will be removed once failed
+m = 'a' . 'c'  | "abc";
+// return first that succeeds?
+
+skip one character
+
+

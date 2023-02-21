@@ -19,31 +19,31 @@ bool print_toks(std::string const & filename, std::istream & in,std::ostream& ou
             out << "ID["<< tok.m_token_id << "]";
          }else{
             switch (tok.m_token_id){
-               case  quan_lexer::EMIT_:
-               case  quan_lexer::JUMP_:
-               case  quan_lexer::APPEND_:
-               case  quan_lexer::PUSHFPOS_:
-               case  quan_lexer::POPFPOS_:
-               case  quan_lexer::DEFAULT_:
-               case  quan_lexer::STATE_:
+               case  quan_lexer::Emit:
+               case  quan_lexer::Jump:
+               case  quan_lexer::Append:
+               case  quan_lexer::PushFpos:
+               case  quan_lexer::PopFpos:
+               case  quan_lexer::Default:
+               case  quan_lexer::State:
                   out << "keyword" ;
                   break;
-               case  quan_lexer::DOT_DOT_:
+               case  quan_lexer::DotDot:
                   out << "punct";
                   break;
-               case quan_lexer::IDENTIFIER:
+               case quan_lexer::Identifier:
                   out << "name";
                   break;
-               case  quan_lexer::STRING_LITERAL_:
+               case  quan_lexer::StringLiteral:
                   out << "string_literal";
                   break;
-               case  quan_lexer::CHARSEQ_:
+               case  quan_lexer::CharSeq:
                   out << "charseq";
                   break;
-               case  quan_lexer::CHAR:
+               case  quan_lexer::Char:
                   out << "char" ;
                   break;
-               case  quan_lexer::EMPTY_SET:
+               case  quan_lexer::EmptySet:
                   out << "empty_set";
                   break;
                case  quan_lexer::error:

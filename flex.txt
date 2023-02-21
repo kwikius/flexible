@@ -106,31 +106,31 @@ STRCHAR           [^\'\"\\\n\a\b\v\t\f\r]
 }
 
 <INITIAL>"state" {
-   return do_tokenID(tok,quan_lexer::STATE_);
+   return do_tokenID(tok,quan_lexer::State);
 }
 
 <INITIAL>"jump" {
-   return do_tokenID(tok,quan_lexer::JUMP_);
+   return do_tokenID(tok,quan_lexer::Jump);
 }
 
 <INITIAL>"append" {
-   return do_tokenID(tok,quan_lexer::APPEND_);
+   return do_tokenID(tok,quan_lexer::Append);
 }
 
 <INITIAL>"emit" {
-   return do_tokenID(tok,quan_lexer::EMIT_);
+   return do_tokenID(tok,quan_lexer::Emit);
 }
 
 <INITIAL>"pushfpos" {
-   return do_tokenID(tok,quan_lexer::PUSHFPOS_);
+   return do_tokenID(tok,quan_lexer::PushFpos);
 }
 
 <INITIAL>"popfpos" {
-   return do_tokenID(tok,quan_lexer::POPFPOS_);
+   return do_tokenID(tok,quan_lexer::PopFpos);
 }
 
 <INITIAL>"default" {
-   return do_tokenID(tok,quan_lexer::DEFAULT_);
+   return do_tokenID(tok,quan_lexer::Default);
 }
 
 <INITIAL>{IDCHAR}({IDCHAR}|{DIGIT})* {
@@ -138,7 +138,7 @@ STRCHAR           [^\'\"\\\n\a\b\v\t\f\r]
 }
 
 <INITIAL>".." {
-   return do_tokenID(tok,quan_lexer::DOT_DOT_);
+   return do_tokenID(tok,quan_lexer::DotDot);
 }
 
 <INITIAL>"$"|"."|"="|","|"|"|"&"|"^"|";"|"{"|"}"|"?"|"*"|"+"|"("|")"|"!"|"["|"]" {

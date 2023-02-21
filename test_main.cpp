@@ -22,7 +22,7 @@ namespace {
    {
        switch (iter){
           case 0:
-             QUAN_CHECK(tok.m_token_id == quan_lexer::IDENTIFIER)
+             QUAN_CHECK(tok.m_token_id == quan_lexer::Identifier)
              QUAN_CHECK(tok.m_lexeme == test1_str )
           break;
           default:
@@ -37,31 +37,31 @@ namespace {
    {
        switch (iter){
           case 0:
-             QUAN_CHECK(tok.m_token_id == quan_lexer::EMIT_)
+             QUAN_CHECK(tok.m_token_id == quan_lexer::Emit)
              QUAN_CHECK(tok.m_lexeme == "emit" )
           break;
           case 1:
-             QUAN_CHECK(tok.m_token_id == quan_lexer::JUMP_)
+             QUAN_CHECK(tok.m_token_id == quan_lexer::Jump)
              QUAN_CHECK(tok.m_lexeme == "jump" )
           break;
           case 2:
-             QUAN_CHECK(tok.m_token_id == quan_lexer::APPEND_)
+             QUAN_CHECK(tok.m_token_id == quan_lexer::Append)
              QUAN_CHECK(tok.m_lexeme == "append" )
           break;
           case 3:
-             QUAN_CHECK(tok.m_token_id == quan_lexer::PUSHFPOS_)
+             QUAN_CHECK(tok.m_token_id == quan_lexer::PushFpos)
              QUAN_CHECK(tok.m_lexeme == "pushfpos" )
           break;
           case 4:
-             QUAN_CHECK(tok.m_token_id == quan_lexer::POPFPOS_)
+             QUAN_CHECK(tok.m_token_id == quan_lexer::PopFpos)
              QUAN_CHECK(tok.m_lexeme == "popfpos" )
           break;
           case 5:
-             QUAN_CHECK(tok.m_token_id == quan_lexer::DEFAULT_)
+             QUAN_CHECK(tok.m_token_id == quan_lexer::Default)
              QUAN_CHECK(tok.m_lexeme == "default" )
           break;
           case 6:
-             QUAN_CHECK(tok.m_token_id == quan_lexer::STATE_)
+             QUAN_CHECK(tok.m_token_id == quan_lexer::State)
              QUAN_CHECK(tok.m_lexeme == "state" )
           break;
           default:
@@ -189,7 +189,7 @@ namespace {
     char const char_escapes2 [] = "\"'\\\"\\a\\b\\f\\n\\r\\t\\v\"";
     void test6 (quan_lexer::token const & tok, int iter)
     {
-       QUAN_CHECK(tok.m_token_id == quan_lexer::STRING_LITERAL_)
+       QUAN_CHECK(tok.m_token_id == quan_lexer::StringLiteral)
        QUAN_CHECK(tok.m_lexeme == "\'\"\a\b\f\n\r\t\v")
        // the escape ahead of the squot is ok but not necessary
        // so this is the same string
@@ -200,7 +200,7 @@ namespace {
     // e.g a\x(62)\d(99)\B(01100100)e or abcde
     void test7 (quan_lexer::token const & tok, int iter)
     {
-       QUAN_CHECK(tok.m_token_id == quan_lexer::STRING_LITERAL_)
+       QUAN_CHECK(tok.m_token_id == quan_lexer::StringLiteral)
        QUAN_CHECK(tok.m_lexeme == "abcde")
     }
 }

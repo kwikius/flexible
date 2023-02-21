@@ -44,7 +44,7 @@ int quan_lexer::src_lexer::do_tokenID(token_type& tok,short ID)
 int quan_lexer::src_lexer::do_identifier(token_type & tok)
 {
    init_tok(tok);
-   return tok.m_token_id = quan_lexer::IDENTIFIER;
+   return tok.m_token_id = quan_lexer::Identifier;
 }
 
 // no pos set up here as string literal is parsed variously
@@ -52,13 +52,13 @@ int quan_lexer::src_lexer::do_string_literal(token_type& tok)
 {
    switch(m_lexeme.size()){
       case 0:
-         tok.m_token_id = quan_lexer::EMPTY_SET  ;
+         tok.m_token_id = quan_lexer::EmptySet  ;
          break;
       case 1:
-         tok.m_token_id = quan_lexer::CHAR;
+         tok.m_token_id = quan_lexer::Char;
          break;
       default:
-         tok.m_token_id = quan_lexer::STRING_LITERAL_;
+         tok.m_token_id = quan_lexer::StringLiteral;
          break;
    }
    tok.filepos.filename = m_filename;
@@ -70,13 +70,13 @@ int quan_lexer::src_lexer::do_charseq(token_type& tok)
 {
    switch(m_lexeme.size()){
       case 0:
-         tok.m_token_id = quan_lexer::EMPTY_SET ;
+         tok.m_token_id = quan_lexer::EmptySet ;
          break;
       case 1:
-         tok.m_token_id = quan_lexer::CHAR;
+         tok.m_token_id = quan_lexer::Char;
          break;
       default:
-         tok.m_token_id = quan_lexer::CHARSEQ_;
+         tok.m_token_id = quan_lexer::CharSeq;
          break;
    }
    tok.filepos.filename = m_filename;

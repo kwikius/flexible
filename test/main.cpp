@@ -188,6 +188,7 @@ struct optionalMatcher : exprMatcher<Char>{
 template <std::equality_comparable Char>
 struct orExprMatcher : exprMatcher<Char>{
 
+   //submatcher
    struct matchInfo{
      matchInfo(std::unique_ptr<exprMatcher<Char> > && p)
      :matcher{std::move(p)},finished{false}{}
@@ -216,6 +217,7 @@ struct orExprMatcher : exprMatcher<Char>{
       for ( auto & m : m_matchSeq){
          m.reset();
       }
+      matchedEmpty = false;
    }
 
    bool isMatching() const override
@@ -232,8 +234,6 @@ struct orExprMatcher : exprMatcher<Char>{
    {
       // set to true if one or more matchers is matching
       bool matching = false;
-      // set to true if one or more matchers matched empty
-      bool matchedEmpty = false;
       for ( auto & m : m_matchSeq){
          if (! m.finished){
             switch(m.matcher->consume(ch)){
@@ -259,10 +259,12 @@ struct orExprMatcher : exprMatcher<Char>{
          return matchState::Matching;
       }else{
          // no matchers in progress
-         this->reset();
+
          if (matchedEmpty){  // one or more matcher matched empty
+            this->reset();
             return matchState::MatchedEmpty;
          }else{
+            this->reset();
             return matchState::NotMatched;
          }
       }
@@ -270,6 +272,8 @@ struct orExprMatcher : exprMatcher<Char>{
 
   private:
     std::vector<matchInfo > m_matchSeq;
+    // set to true if one or more matchers matched empty
+    bool matchedEmpty = false;
 };
 /**
 @brief match any char
@@ -435,7 +439,6 @@ void optional_matcher_test()
    QUAN_CHECK(m.consume('a') == matchState::Matching)
    QUAN_CHECK(m.isMatching() == true)
    QUAN_CHECK(m.consume('x') == matchState::MatchedEmpty)
-   QUAN_CHECK(m.isMatching() == false)
 
    auto m1 = optionalMatcher<char>{std::make_unique<primOneOfMatcher<char> >("ab")};
 
@@ -446,6 +449,28 @@ void optional_matcher_test()
 
    QUAN_CHECK(m1.isMatching() == false)
    QUAN_CHECK(m1.consume('x') == matchState::MatchedEmpty)
+
+   // make optional with or matcher  m = "abc" | {} ;
+   // check is same semantic
+   auto m2 = orExprMatcher<char>{};
+   m2.push_back(std::make_unique<simpleStringMatcher<char> >("abc"));
+   m2.push_back(std::make_unique<emptyMatcher<char> > ());
+
+   QUAN_CHECK(m2.isMatching() == false)
+   QUAN_CHECK(m2.consume('a') == matchState::Matching)
+   QUAN_CHECK(m2.isMatching() == true)
+   QUAN_CHECK(m2.consume('b') == matchState::Matching)
+   QUAN_CHECK(m2.isMatching() == true)
+   QUAN_CHECK(m2.consume('c') == matchState::Matched)
+
+   QUAN_CHECK(m2.isMatching() == false)
+
+   QUAN_CHECK(m2.consume('a') == matchState::Matching)
+   QUAN_CHECK(m2.isMatching() == true)
+   QUAN_CHECK(m2.consume('b') == matchState::Matching)
+   QUAN_CHECK(m2.isMatching() == true)
+   QUAN_CHECK(m2.consume('d') == matchState::MatchedEmpty)
+   QUAN_CHECK(m2.isMatching() == false)
 
 }
 

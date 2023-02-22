@@ -13,7 +13,8 @@
 enum class matchState{
    NotMatched,  // ch is not a match so expression not matched
    Matching,  // ch is a match for last matched, but needs more to complete "matching"
-   Matched  // ch is a match and all elements matched "matched"
+   Matched,  // ch is a match and all elements matched "matched"
+   MatchedEmpty // matched the empty set ( so don't consume ch)
 };
 
 /**
@@ -60,27 +61,19 @@ struct charMatcher : primMatcher<Char>{
    Char mChar;
 };
 
-template <std::equality_comparable Char>
-struct emptyChar;
-
-template <>
-struct emptyChar<char>
-{
-   constexpr char operator()() const
-   {
-       return '\0';
-   }
-};
-
 /**
- @brief match the empty set
+@brief  always empty matcher
+If used alone would result in an infinite loop!
 **/
 template <std::equality_comparable Char>
-struct emptySetMatcher : primMatcher<Char>{
-   bool operator()(Char const & ch) const override
-   { return ch == emptyChar<Char>{}();};
+struct emptyMatcher : exprMatcher<Char>{
+    void reset() override{}
+    bool isMatching() const override { return false;}
+    matchState consume(Char const & ch) override
+    {
+       return matchState::MatchedEmpty;
+    }
 };
-
 
 /**
  @brief match a sequence of exprMatchers ( technically a string, but general)
@@ -111,22 +104,32 @@ struct matchSequence : exprMatcher<Char>{
       if ( this->m_matchSeq.empty()){
          return matchState::NotMatched;
       }
-      auto const result = this->m_matchSeq[currentMatchIndex]->consume(ch);
-      switch(result){
-         case matchState::Matched:
-            if (++currentMatchIndex < std::ssize(m_matchSeq)){
+      for (;;){
+         auto const result = this->m_matchSeq[currentMatchIndex]->consume(ch);
+         switch(result){
+            case matchState::MatchedEmpty:
+               if (++currentMatchIndex < std::ssize(m_matchSeq)){
+                  break; // dont consume char go round again
+               }else{
+                  this->reset();
+                  return matchState::MatchedEmpty;
+               }
+            case matchState::Matched:
+               if (++currentMatchIndex < std::ssize(m_matchSeq)){
+                  return matchState::Matching;
+               }else{
+                  this->reset();
+                  return matchState::Matched;
+               }
+            case matchState::NotMatched:
+               this->reset();
+               return matchState::NotMatched;
+            case matchState::Matching:
                return matchState::Matching;
-            }
-            [[fallthrough]];
-         case matchState::NotMatched:
-            this->reset();
-            [[fallthrough]];
-         case matchState::Matching:
-            break;
-         default:
-            assert(false);
+            default:
+               assert(false);
+         }
       }
-      return result;
    }
    private:
    std::vector<std::unique_ptr<exprMatcher<Char> > > m_matchSeq;
@@ -134,7 +137,8 @@ struct matchSequence : exprMatcher<Char>{
 };
 
 /**
-  match a simple string
+  @brief match a simple string
+  @todo can be better done just iterate the string
 **/
 template <std::equality_comparable Char>
 struct simpleStringMatcher : matchSequence<Char>{
@@ -147,6 +151,39 @@ struct simpleStringMatcher : matchSequence<Char>{
     }
 };
 
+/*
+ @brief match a string or the empty set
+*/
+template <std::equality_comparable Char>
+struct optionalMatcher : exprMatcher<Char>{
+
+    template <typename T>
+    requires std::derived_from<T,exprMatcher<Char> >
+    optionalMatcher(std::unique_ptr<T> && p)
+    : matcher(std::move(p)){}
+    void reset()override
+    { this->matcher->reset();}
+    bool isMatching() const
+    { return this->matcher->isMatching();}
+   [[nodiscard]] matchState consume(Char const & ch) override
+   {
+       switch (auto const result = matcher->consume(ch)){
+          case matchState::Matched:
+             [[fallthrough]];
+          case matchState::Matching:
+             return result;
+          case matchState::MatchedEmpty:
+             [[fallthrough]];
+          case matchState::NotMatched:
+             return matchState::MatchedEmpty;
+          default:
+            assert(false);
+            return result;
+       }
+   }
+    private:
+    std::unique_ptr<exprMatcher<Char> > matcher;
+};
 // parallel matcher
 template <std::equality_comparable Char>
 struct orExprMatcher : exprMatcher<Char>{
@@ -180,6 +217,7 @@ struct orExprMatcher : exprMatcher<Char>{
          m.reset();
       }
    }
+
    bool isMatching() const override
    {
       for ( auto const & m : m_matchSeq){
@@ -194,9 +232,15 @@ struct orExprMatcher : exprMatcher<Char>{
    {
       // set to true if one or more matchers is matching
       bool matching = false;
+      // set to true if one or more matchers matched empty
+      bool matchedEmpty = false;
       for ( auto & m : m_matchSeq){
          if (! m.finished){
             switch(m.matcher->consume(ch)){
+               case matchState::MatchedEmpty:
+                 m.finished = true;
+                 matchedEmpty = true;
+                 break;
                case matchState::Matched:
                  this->reset();
                  return matchState::Matched;
@@ -216,7 +260,11 @@ struct orExprMatcher : exprMatcher<Char>{
       }else{
          // no matchers in progress
          this->reset();
-         return matchState::NotMatched;
+         if (matchedEmpty){  // one or more matcher matched empty
+            return matchState::MatchedEmpty;
+         }else{
+            return matchState::NotMatched;
+         }
       }
    }
 
@@ -236,9 +284,9 @@ struct any_matcher : primMatcher<Char>{
 @brief match one of a list of chars
 **/
 template <std::equality_comparable Char>
-struct primSequenceMatcher : primMatcher<Char>{
+struct primOneOfMatcher : primMatcher<Char>{
    template <std::ranges::forward_range C>
-   primSequenceMatcher(C const & cont){
+   primOneOfMatcher(C const & cont){
       for ( auto c: cont){
         symbols.push_back(c);
       }
@@ -292,7 +340,7 @@ void one_of_list_test()
    std::cout << "one_of_list_test()\n";
 
    std::string const str = "abc";
-   primSequenceMatcher<std::string::value_type> match = str;
+   primOneOfMatcher<std::string::value_type> match = str;
 
    for ( auto c : str){
       QUAN_CHECK( match(c));
@@ -325,7 +373,7 @@ void match_expr_test()
    auto me = matchSequence<char>{};
    QUAN_CHECK( me.isMatching() == false);
    // me = 'ab';
-   me.push_back(std::make_unique<primSequenceMatcher<char> >("ab"));
+   me.push_back(std::make_unique<primOneOfMatcher<char> >("ab"));
    QUAN_CHECK( me.isMatching() == false);
 
    QUAN_CHECK(me.consume('a') == matchState::Matched);
@@ -334,7 +382,7 @@ void match_expr_test()
    QUAN_CHECK( me.isMatching() == false);
 
    // me = 'ab' 'de' ;
-   me.push_back(std::make_unique<primSequenceMatcher<char> >("de"));
+   me.push_back(std::make_unique<primOneOfMatcher<char> >("de"));
    QUAN_CHECK(me.isMatching() == false);
    // match "ae"
    QUAN_CHECK(me.consume('a') == matchState::Matching);
@@ -375,6 +423,32 @@ void or_matcher_test()
    QUAN_CHECK(m.consume('b') == matchState::NotMatched)
 }
 
+void optional_matcher_test()
+{
+   auto m = optionalMatcher<char>{std::make_unique<simpleStringMatcher<char> >("ab")};
+   QUAN_CHECK(m.isMatching() == false)
+   QUAN_CHECK(m.consume('a') == matchState::Matching)
+   QUAN_CHECK(m.isMatching() == true)
+   QUAN_CHECK(m.consume('b') == matchState::Matched)
+
+   QUAN_CHECK(m.isMatching() == false)
+   QUAN_CHECK(m.consume('a') == matchState::Matching)
+   QUAN_CHECK(m.isMatching() == true)
+   QUAN_CHECK(m.consume('x') == matchState::MatchedEmpty)
+   QUAN_CHECK(m.isMatching() == false)
+
+   auto m1 = optionalMatcher<char>{std::make_unique<primOneOfMatcher<char> >("ab")};
+
+   QUAN_CHECK(m1.isMatching() == false)
+   QUAN_CHECK(m1.consume('a') == matchState::Matched)
+   QUAN_CHECK(m1.isMatching() == false)
+   QUAN_CHECK(m1.consume('b') == matchState::Matched)
+
+   QUAN_CHECK(m1.isMatching() == false)
+   QUAN_CHECK(m1.consume('x') == matchState::MatchedEmpty)
+
+}
+
 int errors = 0;
 int main()
 {
@@ -384,6 +458,8 @@ int main()
 
   match_expr_test();
   or_matcher_test();
+
+  optional_matcher_test();
 
   EPILOGUE;
 }

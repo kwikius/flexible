@@ -46,4 +46,10 @@ html_matcher = "<!--" ... "-->" ;
 
 begin matcher , middle_matcher, end_matcher
 
+empty match
+
+if empty match in seq then move to next
+
+if empty match at end of seq then return empty_match
+
 

@@ -1,46 +1,66 @@
 Flexible
 --------
 
- An easy to read and understand lexer expression language.
-
-[traditionally regex syntax is highly cryptic.]
-(https://stackoverflow.com/questions/12643009/regular-expression-for-floating-point-numbers)
-
-Example traditional pattern for a floating point number:
-
-```
-[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?
-```
-
-Example of code to lex a real number in Flex. Flex improves on the traditional form by
-allowing to assign expressions to a variable
-
-```
-	/**
-	 * @brief a lexer for a floating point number. 
-	 **/
-EXP               [eE]
-SIGN              [+-]
-DIGIT             [0-9]
-EXPONENT          {EXP}{SIGN}?{DIGIT}+
-REAL              {SIGN}?{DIGIT}*"."{DIGIT}+{EXPONENT}?|
-{DIGIT}+(("."{EXPONENT}?)|{EXPONENT})
-```
-
-Same example in flexible. Flexible also allows assigning expressions to a variable.
-Flexible (like flex) also adopts C and C++ style comments and semi-colon statement terminators.
+ A simple regular-expression language.
 
 ```
 /**
  * @brief a lexer for a floating point number. 
  **/
+
   exp       =  'eE'                                   ;
   sign      =  '+-'                                   ;
   digit     =  '0'~'9'                                ;                
   exponent  =  exp sign? digit+                       ;
   real      =  sign? digit* '.' digit+ exponent?
                | digit+ ( '.' exponent? | exponent )  ;
+
 ```
+
+--------------------------
+
+Introduction
+------------
+
+Traditionally writing regular expressions is known to be a struggle. 
+Why should this be? 
+Flexible is a simple and legible regular expression language, 
+which aims to make writing regular-expressions pain free.
+
+Traditionally [regex syntax is highly cryptic.]
+(https://stackoverflow.com/questions/12643009/regular-expression-for-floating-point-numbers)
+
+For example a traditional regex pattern for a floating point number:
+
+```
+[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?
+```
+The traditional regexp has no notion of assigning an expression to a variable, so in the above
+the digits expression is repeated 3 times.
+
+[Flex](https://github.com/westes/flex) lexer improves on the traditional form by
+allowing to assign expressions to a variable. Nevertheless it still has a fair few pitfalls,
+such as not allowing the comments to start at the left hand side, 
+while expressions must not have preceding whitespace.
+
+```
+	/**
+	 * @brief a lexer for a floating point number. 
+	 **/
+
+EXP               [eE]
+SIGN              [+-]
+DIGIT             [0-9]
+EXPONENT          {EXP}{SIGN}?{DIGIT}+
+REAL              {SIGN}?{DIGIT}*"."{DIGIT}+{EXPONENT}?|
+{DIGIT}+(("."{EXPONENT}?)|{EXPONENT})
+
+```
+
+Flexible also allows assigning expressions to a variable.
+Flexible (like flex) also adopts C and C++ style comments and semi-colon statement terminators.
+
+
 
 Flexible basic concepts
 -----------------------

@@ -1,55 +1,5 @@
 
-match algorithm for alternatives
 
 
-// both start symbols are same
-// then the second matcher is redundant
-// dont need to warn
-// except maybe for optimisation
-m1 = 'a' | "ab" ;
-m2 = "ab" | 'a' ;
-
-m1 == m2 = true;
-
-match(m , 'a' )  == true
-
-both above should work the same way
-
-m = "ab" | "abc";
-m = "abc" | "ab";
-
-also means  | | should be a sequence
-
-match(m, "ab") == true
-
-// matchers will be removed once failed
-m = 'a' . 'c'  | "abc";
-// return first that succeeds?
-
-skip one character
-
-should . mean any non newline ch or any char
-should mean anything
-
-any_but_newl = . ^ newl;
-
-match a html comment  in flexible syntax
-
-html_matcher = "<!--" . ^ "-->" "-->" ;
-html_matcher = "<!--" ( . ^ "-->" ) "-->" ; // for clarity
-
-// can do with one lookahead I think
-to matchers one is matching any other is matching "-->" ( when fails just keeps starting)
-when terminator matcher succeeds matcher succeeds
-
-html_matcher = "<!--" ... "-->" ;
-
-begin matcher , middle_matcher, end_matcher
-
-empty match
-
-if empty match in seq then move to next
-
-if empty match at end of seq then return empty_match
 
 

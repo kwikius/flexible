@@ -80,8 +80,13 @@ void match_expr_test()
 
    QUAN_CHECK(me.consume('a') == matchState::Matched);
    QUAN_CHECK(me.isMatching() == false);
+
+   //TODO now buffer should be "a"
+
    QUAN_CHECK(me.consume('x') == matchState::NotMatched);
-   QUAN_CHECK( me.isMatching() == false);
+   QUAN_CHECK(me.isMatching() == false);
+
+   // TODO now buffer should be "x"
 
    // me = 'ab' 'de' ;
    me.push_back(std::make_unique<primOneOfMatcher<char> >("de"));
@@ -91,6 +96,8 @@ void match_expr_test()
    QUAN_CHECK(me.isMatching() == true);
    QUAN_CHECK(me.consume('e') == matchState::Matched);
    QUAN_CHECK(me.isMatching() == false);
+
+   // TODO now buffer should be "ae"
    // match "aa"
    QUAN_CHECK(me.consume('a') == matchState::Matching);
    QUAN_CHECK(me.isMatching() == true);
@@ -138,6 +145,8 @@ void optional_matcher_test()
    QUAN_CHECK(m.isMatching() == true)
    QUAN_CHECK(m.consume('x') == matchState::MatchedEmpty)
 
+   // TODO backtrack should now be "ax"
+
    auto m1 = optionalMatcher<char>{std::make_unique<primOneOfMatcher<char> >("ab")};
 
    QUAN_CHECK(m1.isMatching() == false)
@@ -147,6 +156,8 @@ void optional_matcher_test()
 
    QUAN_CHECK(m1.isMatching() == false)
    QUAN_CHECK(m1.consume('x') == matchState::MatchedEmpty)
+
+   // TODO backtrack should now be "x"
 
    // make optional with or matcher  m = "abc" | {} ;
    // check is same semantic
@@ -161,6 +172,8 @@ void optional_matcher_test()
    QUAN_CHECK(m2.isMatching() == true)
    QUAN_CHECK(m2.consume('c') == matchState::Matched)
 
+   // TODO buffer dhould now be "abc"
+
    QUAN_CHECK(m2.isMatching() == false)
 
    QUAN_CHECK(m2.consume('a') == matchState::Matching)
@@ -170,19 +183,77 @@ void optional_matcher_test()
    QUAN_CHECK(m2.consume('d') == matchState::MatchedEmpty)
    QUAN_CHECK(m2.isMatching() == false)
 
+   //TODO now buffer should be "abd";
+
+}
+
+struct matcher{
+   template <typename T>
+   requires std::derived_from<T,exprMatcher<char> >
+   matcher(std::unique_ptr<T> && m): m_matcher{std::move(m)}{}
+   matchState match( char ch)
+   {
+      lexeme += ch;
+      return m_matcher->consume(ch);
+   }
+   std::unique_ptr<exprMatcher<char> > m_matcher;
+   std::string lexeme;
+};
+
+void matcher_test()
+{
+  auto make_matcher = [] (){
+     auto m = std::make_unique<orExprMatcher<char> >();
+     m->push_back(std::make_unique<simpleStringMatcher<char> >("abc"));
+     m->push_back(std::make_unique<emptyMatcher<char> > ());
+     return matcher{std::move(m)};
+  };
+
+  matcher m = make_matcher();
+  std::string str = "abacd";
+  bool done = false;
+  while(str.length() && ! done ){
+     auto ch = str.front();
+     str.erase(0,1); // str.pop_front()
+     switch(m.match(ch)){
+        case matchState::Matched:
+           std::cout << "Matched \"" << m.lexeme << "\" left \"" << str << "\"\n";
+           done = true;
+           break;
+        case matchState::Matching:
+           break;
+        case matchState::NotMatched:
+           std::cout << "Not Matched \""<< m.lexeme << "\" left \"" << str << "\"\n";
+           done = true;
+           break;
+        case matchState::MatchedEmpty:
+           str = std::move(m.lexeme) + str;
+           std::cout << "Empty Matched \""<< m.lexeme << "\" left \"" << str << "\"\n";
+           done = true;
+           break;
+        default:
+           break;
+     }
+     if (done) {
+        m.lexeme = "";
+     }
+  }
+
 }
 
 int errors = 0;
 int main()
 {
-  any_test();
-  one_of_list_test();
-  range_test();
+//  any_test();
+//  one_of_list_test();
+//  range_test();
+//
+//  match_expr_test();
+//  or_matcher_test();
+//
+//  optional_matcher_test();
 
-  match_expr_test();
-  or_matcher_test();
-
-  optional_matcher_test();
+  matcher_test();
 
   EPILOGUE;
 }

@@ -303,3 +303,23 @@ struct primOneOfMatcher : primMatcher<Char>{
    private:
    std::basic_string<Char> symbols;
 };
+
+/**
+@brief match one from contiguous range of chars
+**/
+template <std::equality_comparable Char>
+struct range_matcher : primMatcher<Char>{
+
+     range_matcher(Char const & lowest, Char const & highest)
+     : lowest{lowest},highest{highest}{
+        assert( lowest <= highest);
+     }
+
+     bool operator()(Char const & ch) const override
+     {
+        return (ch >= lowest) && (ch <= highest);
+     }
+    private:
+    Char const lowest;
+    Char const highest;
+};

@@ -1,26 +1,6 @@
 
 #include <flexible/matchers/regexMatcher.hpp>
 
-/**
-@brief match one from contiguous range of chars
-**/
-template <std::equality_comparable Char>
-struct range_matcher : primMatcher<Char>{
-
-     range_matcher(Char const & lowest, Char const & highest)
-     : lowest{lowest},highest{highest}{
-        assert( lowest <= highest);
-     }
-
-     bool operator()(Char const & ch) const override
-     {
-        return (ch >= lowest) && (ch <= highest);
-     }
-    private:
-    Char const lowest;
-    Char const highest;
-};
-
 void any_test()
 {
    std::cout << "any_test\n";
@@ -196,6 +176,10 @@ struct matcher{
       lexeme += ch;
       return m_matcher->consume(ch);
    }
+   void backtrack( std::string & str)
+   {
+      str = std::move(this->lexeme) + str;
+   }
    std::unique_ptr<exprMatcher<char> > m_matcher;
    std::string lexeme;
 };
@@ -209,26 +193,30 @@ void matcher_test()
      return matcher{std::move(m)};
   };
 
+  auto pop_front =[](std::string & str)-> char{
+     auto ch = str.front();
+     str.erase(0,1);
+     return ch;
+  };
+
   matcher m = make_matcher();
   std::string str = "abacd";
   bool done = false;
   while(str.length() && ! done ){
-     auto ch = str.front();
-     str.erase(0,1); // str.pop_front()
-     switch(m.match(ch)){
+     switch(m.match(pop_front(str))){
         case matchState::Matched:
-           std::cout << "Matched \"" << m.lexeme << "\" left \"" << str << "\"\n";
+           std::cout << "Matched \"" << m.lexeme << "\" residual \"" << str << "\"\n";
            done = true;
            break;
         case matchState::Matching:
            break;
         case matchState::NotMatched:
-           std::cout << "Not Matched \""<< m.lexeme << "\" left \"" << str << "\"\n";
+           std::cout << "Not Matched \""<< m.lexeme << "\" residual \"" << str << "\"\n";
            done = true;
            break;
         case matchState::MatchedEmpty:
-           str = std::move(m.lexeme) + str;
-           std::cout << "Empty Matched \""<< m.lexeme << "\" left \"" << str << "\"\n";
+           m.backtrack(str);
+           std::cout << "Empty Matched \""<< m.lexeme << "\" residual \"" << str << "\"\n";
            done = true;
            break;
         default:

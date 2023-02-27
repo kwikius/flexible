@@ -12,6 +12,7 @@
 #include <quan/meta/is_element_of.hpp>
 
 enum class matchState{
+   Eof,
    NotMatched,  // ch is not a match so expression not matched
    Matching,  // ch is a match for last matched, but needs more to complete "matching"
    Matched,  // ch is a match and all elements matched "matched"
@@ -19,13 +20,22 @@ enum class matchState{
 };
 
 /**
-abstract base class expression matcher
+abstract base class expression matcher stat machine
 **/
 template <std::equality_comparable Char>
 struct exprMatcher{
    virtual ~exprMatcher() = default;
    virtual void reset() = 0;
+   /**
+   @brief state machine is either matching or not matching.
+   Each call to consume changes state. A call may start matching or stop matching
+   There are other internal states, but isMatching can tell if machine is in
+   middle of matching a patten
+   **/
    virtual bool isMatching() const =0;
+   /**
+    @brief
+   **/
    [[nodiscard]] virtual matchState consume(Char const & ch) = 0;
 };
 
@@ -77,7 +87,7 @@ struct emptyMatcher : exprMatcher<Char>{
 };
 
 /**
- @brief match a sequence of exprMatchers ( technically a string, but general)
+ @brief match a sequence of exprMatchers
 **/
 template <std::equality_comparable Char>
 struct matchSequence : exprMatcher<Char>{

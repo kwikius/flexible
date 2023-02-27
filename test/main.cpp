@@ -180,6 +180,7 @@ struct matcher{
    {
       str = std::move(this->lexeme) + str;
    }
+
    std::unique_ptr<exprMatcher<char> > m_matcher;
    std::string lexeme;
 };
@@ -189,6 +190,7 @@ void matcher_test()
   auto make_matcher = [] (){
      auto m = std::make_unique<orExprMatcher<char> >();
      m->push_back(std::make_unique<simpleStringMatcher<char> >("abc"));
+     m->push_back(std::make_unique<simpleStringMatcher<char> >("wxyz"));
      m->push_back(std::make_unique<emptyMatcher<char> > ());
      return matcher{std::move(m)};
   };
@@ -200,32 +202,38 @@ void matcher_test()
   };
 
   matcher m = make_matcher();
-  std::string str = "abacd";
+  std::string str = "wxyzabx";
+  std::string lexeme;
   bool done = false;
   while(str.length() && ! done ){
      switch(m.match(pop_front(str))){
         case matchState::Matched:
-           std::cout << "Matched \"" << m.lexeme << "\" residual \"" << str << "\"\n";
-           done = true;
+           lexeme = std::move(m.lexeme);
+           std::cout << "Matched. \"" << lexeme << "\"\n" ;
            break;
         case matchState::Matching:
            break;
         case matchState::NotMatched:
-           std::cout << "Not Matched \""<< m.lexeme << "\" residual \"" << str << "\"\n";
+           // must be a fail so invalid
+           std::cout << "Not Matched. parsed \""<< lexeme << "\" residual = \"" << str << "\"\n";
            done = true;
            break;
         case matchState::MatchedEmpty:
            m.backtrack(str);
-           std::cout << "Empty Matched \""<< m.lexeme << "\" residual \"" << str << "\"\n";
+           std::cout << "Empty Matched. residual = \"" << str << "\"\n";
+           // since there are no more matchers then done
            done = true;
            break;
         default:
            break;
-     }
-     if (done) {
-        m.lexeme = "";
-     }
-  }
+      }
+   }
+   if (! str.length() ){
+      if ( m.lexeme.length()){
+        std::cout << "EOF while matching = \"" << lexeme << "\"\n";
+      }
+   }
+
 
 }
 

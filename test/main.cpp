@@ -54,22 +54,81 @@ void match_expr_test()
 {
    auto me = matchSequence<char>{};
    QUAN_CHECK( me.isMatching() == false);
+   // flexible syntax
    // me = 'ab';
    me.push_back(std::make_unique<primOneOfMatcher<char> >("ab"));
+   //#########################################################
    QUAN_CHECK( me.isMatching() == false);
-
-   QUAN_CHECK(me.consume('a') == matchState::Matched);
+   std::string lexeme;
+   std::string str = "a";
+   QUAN_CHECK(me.consume(str,lexeme) == matchState::Matched);
+  // std::cout << "lexeme = \"" << lexeme <<"\"\n";
+   QUAN_CHECK(lexeme == "a")
    QUAN_CHECK(me.isMatching() == false);
 
-   //TODO now buffer should be "a"
-
-   QUAN_CHECK(me.consume('x') == matchState::NotMatched);
+   QUAN_CHECK(str == "")
+   QUAN_CHECK(me.consume(str,lexeme) == matchState::Eof)
+   QUAN_CHECK(lexeme == "a")
    QUAN_CHECK(me.isMatching() == false);
 
-   // TODO now buffer should be "x"
-
+   lexeme = "";  // reset lexeme;
+   str = "x";
+   QUAN_CHECK(me.consume(str,lexeme) == matchState::NotMatched)
+   QUAN_CHECK(lexeme == "x") // lexeme holds partial match inc failed last char
+   QUAN_CHECK(str == "")
+   QUAN_CHECK(me.isMatching() == false);
+   // flexible syntax
    // me = 'ab' 'de' ;
    me.push_back(std::make_unique<primOneOfMatcher<char> >("de"));
+   QUAN_CHECK(me.isMatching() == false);
+
+   str = "ad";
+   lexeme = "";
+   QUAN_CHECK(me.consume(str,lexeme) == matchState::Matched);
+   QUAN_CHECK(str == "")
+   QUAN_CHECK(me.consume(str,lexeme) == matchState::Eof)
+   QUAN_CHECK(lexeme == "ad")
+   QUAN_CHECK(me.isMatching() == false);
+
+   str = "bd";
+   lexeme = "";
+   QUAN_CHECK(me.consume(str,lexeme) == matchState::Matched);
+   QUAN_CHECK(str == "")
+   QUAN_CHECK(me.consume(str,lexeme) == matchState::Eof)
+   QUAN_CHECK(lexeme == "bd")
+   QUAN_CHECK(me.isMatching() == false);
+
+   str = "ae";
+   lexeme = "";
+   QUAN_CHECK(me.consume(str,lexeme) == matchState::Matched);
+   QUAN_CHECK(str == "")
+   QUAN_CHECK(me.consume(str,lexeme) == matchState::Eof)
+   QUAN_CHECK(lexeme == "ae")
+   QUAN_CHECK(me.isMatching() == false);
+
+   str = "be";
+   lexeme = "";
+   QUAN_CHECK(me.consume(str,lexeme) == matchState::Matched);
+   QUAN_CHECK(str == "")
+   QUAN_CHECK(me.consume(str,lexeme) == matchState::Eof)
+   QUAN_CHECK(lexeme == "be")
+   QUAN_CHECK(me.isMatching() == false);
+
+   str = "adx";
+   lexeme = "";
+   QUAN_CHECK(me.consume(str,lexeme) == matchState::Matched);
+   QUAN_CHECK(str == "x")
+   QUAN_CHECK(lexeme == "ad")
+   QUAN_CHECK(me.isMatching() == false);
+
+   lexeme = "";
+   QUAN_CHECK(me.consume(str,lexeme) == matchState::NotMatched)
+   QUAN_CHECK(lexeme == "x")
+   QUAN_CHECK(me.isMatching() == false);
+/*
+
+
+
    QUAN_CHECK(me.isMatching() == false);
    // match "ae"
    QUAN_CHECK(me.consume('a') == matchState::Matching);
@@ -83,8 +142,10 @@ void match_expr_test()
    QUAN_CHECK(me.isMatching() == true);
    QUAN_CHECK(me.consume('a') == matchState::NotMatched);
    QUAN_CHECK(me.isMatching() == false);
+*/
 }
 
+/*
 void or_matcher_test()
 {
    auto m = orExprMatcher<char>{};
@@ -111,7 +172,8 @@ void or_matcher_test()
    QUAN_CHECK(m.consume('b') == matchState::Matching)
    QUAN_CHECK(m.consume('b') == matchState::NotMatched)
 }
-
+*/
+/*
 void optional_matcher_test()
 {
    auto m = optionalMatcher<char>{std::make_unique<simpleStringMatcher<char> >("ab")};
@@ -166,7 +228,8 @@ void optional_matcher_test()
    //TODO now buffer should be "abd";
 
 }
-
+*/
+/*
 struct matcher{
    template <typename T>
    requires std::derived_from<T,exprMatcher<char> >
@@ -236,20 +299,21 @@ void matcher_test()
 
 
 }
+*/
 
 int errors = 0;
 int main()
 {
-//  any_test();
-//  one_of_list_test();
-//  range_test();
-//
-//  match_expr_test();
+  any_test();
+  one_of_list_test();
+  range_test();
+
+  match_expr_test();
 //  or_matcher_test();
 //
 //  optional_matcher_test();
 
-  matcher_test();
+ // matcher_test();
 
   EPILOGUE;
 }

@@ -36,7 +36,16 @@ struct exprMatcher{
    /**
     @brief
    **/
-   [[nodiscard]] virtual matchState consume(Char const & ch) = 0;
+   [[nodiscard]] virtual matchState
+   consume(std::basic_string<Char> & strIn, std::basic_string<Char> & lexemeOut) = 0;
+   protected:
+   static Char pop_front (std::basic_string<Char> & str)
+   {
+     auto ch = str.front();
+     str.erase(0,1);
+     return ch;
+   }
+
 };
 
 /**
@@ -51,12 +60,19 @@ struct primMatcher : exprMatcher<Char>{
    virtual bool operator()(Char const & ch) const = 0;
    void reset() override{}
    bool isMatching() const override { return false;} // no state
-   matchState consume(Char const & ch) override
+   matchState consume(std::basic_string<Char> & strIn,std::basic_string<Char> & lexemeOut) override
    {
-      return (*this)(ch)
-         ? matchState::Matched
-         : matchState::NotMatched
-      ;
+      if ( ! strIn.empty()){
+         Char const ch = this->pop_front(strIn);
+         lexemeOut += ch;
+         if((*this)(ch)){
+            return matchState::Matched;
+         }else{
+            return matchState::NotMatched;
+         }
+      }else{
+         return matchState::Eof;
+      }
    }
 };
 /**
@@ -80,7 +96,7 @@ template <std::equality_comparable Char>
 struct emptyMatcher : exprMatcher<Char>{
     void reset() override{}
     bool isMatching() const override { return false;}
-    matchState consume(Char const & ch) override
+    matchState consume(std::string & strIn, std::string & lexemeOut) override
     {
        return matchState::MatchedEmpty;
     }
@@ -110,33 +126,36 @@ struct matchSequence : exprMatcher<Char>{
    bool isMatching() const override
    { return currentMatchIndex > 0;}
 
-   [[nodiscard]] matchState consume(Char const & ch) override
+   [[nodiscard]] matchState consume(std::basic_string<Char> & strIn, std::basic_string<Char> & lexemeOut) override
    {
       if ( this->m_matchSeq.empty()){
          return matchState::NotMatched;
       }
       for (;;){
-         auto const result = this->m_matchSeq[currentMatchIndex]->consume(ch);
-         switch(result){
-            case matchState::MatchedEmpty:
-               if (++currentMatchIndex < std::ssize(m_matchSeq)){
-                  break; // dont consume char go round again
-               }else{
-                  this->reset();
-                  return matchState::MatchedEmpty;
-               }
+         switch(this->m_matchSeq[currentMatchIndex]->consume(strIn,lexemeOut)){
+            case matchState::Matching:
+               break;
             case matchState::Matched:
                if (++currentMatchIndex < std::ssize(m_matchSeq)){
-                  return matchState::Matching;
+                  break;
                }else{
                   this->reset();
                   return matchState::Matched;
                }
+            case matchState::MatchedEmpty:
+               if (++currentMatchIndex < std::ssize(m_matchSeq)){
+                  break; // dont consume char go round again
+               }else{
+                  strIn = std::move(lexemeOut) + strIn;
+                  this->reset();
+                  return matchState::MatchedEmpty;
+               }
             case matchState::NotMatched:
                this->reset();
                return matchState::NotMatched;
-            case matchState::Matching:
-               return matchState::Matching;
+            case matchState::Eof:
+               this->reset();
+               return matchState::Eof;
             default:
                assert(false);
          }
@@ -176,21 +195,25 @@ struct optionalMatcher : exprMatcher<Char>{
     { this->matcher->reset();}
     bool isMatching() const
     { return this->matcher->isMatching();}
-   [[nodiscard]] matchState consume(Char const & ch) override
+   [[nodiscard]] matchState consume(std::string & strIn, std::string & lexemeOut) override
    {
-       switch (auto const result = matcher->consume(ch)){
-          case matchState::Matched:
-             [[fallthrough]];
-          case matchState::Matching:
-             return result;
-          case matchState::MatchedEmpty:
-             [[fallthrough]];
-          case matchState::NotMatched:
-             return matchState::MatchedEmpty;
-          default:
-            assert(false);
-            return result;
-       }
+       for (;;){
+          switch (auto const result = matcher->consume(strIn,lexemeOut)){
+             case matchState::Matching:
+                break;
+             case matchState::Matched:
+                return result;
+             case matchState::MatchedEmpty:
+                [[fallthrough]];
+             case matchState::NotMatched:
+                strIn += std::move(lexemeOut);
+                return matchState::MatchedEmpty;
+             // Eof??
+             default:
+               assert(false);
+               return result;
+          }
+      }
    }
     private:
     std::unique_ptr<exprMatcher<Char> > matcher;
@@ -241,42 +264,50 @@ struct orExprMatcher : exprMatcher<Char>{
       return false;
    }
 
-   [[nodiscard]] matchState consume(Char const & ch) override
+   [[nodiscard]] matchState consume(std::string & strIn, std::string & lexemeOut) override
    {
-      // set to true if one or more matchers is matching
-      bool matching = false;
-      for ( auto & m : m_matchSeq){
-         if (! m.finished){
-            switch(m.matcher->consume(ch)){
-               case matchState::MatchedEmpty:
-                 m.finished = true;
-                 matchedEmpty = true;
-                 break;
-               case matchState::Matched:
-                 this->reset();
-                 return matchState::Matched;
-               case matchState::Matching:
-                 matching = true;  // still matching in progress
-                 break;
-               case matchState::NotMatched:
-                 m.finished = true; // this matcher is done
-                 break;
-               default:
-               assert(false);
+      for (;;){
+         if (strIn.empty()){
+            return matchState::Eof;
+         }
+         // set to true if one or more matchers is matching
+         bool matching = false;
+         for ( auto & m : m_matchSeq){
+            if (! m.finished){
+               switch(m.matcher->consume(strIn,lexemeOut)){
+                  case matchState::MatchedEmpty:
+                    m.finished = true;
+                    matchedEmpty = true;
+                    break;
+                  case matchState::Matched:
+                    this->reset();
+                    return matchState::Matched;
+                  case matchState::Matching:
+                    matching = true;  // still matching in progress
+                    break;
+                  case matchState::NotMatched:
+                    m.finished = true; // this matcher is done
+                    break;
+                  case matchState::Eof:
+                    this->reset();
+                    return matchState::Eof;
+                  default:
+                  assert(false);
+               }
             }
          }
-      }
-      if ( matching){
-         return matchState::Matching;
-      }else{
-         // no matchers in progress
-
-         if (matchedEmpty){  // one or more matcher matched empty
-            this->reset();
-            return matchState::MatchedEmpty;
+         if ( matching){
+            continue;
          }else{
-            this->reset();
-            return matchState::NotMatched;
+            // no matchers in progress
+
+            if (matchedEmpty){  // one or more matcher matched empty
+               this->reset();
+               return matchState::MatchedEmpty;
+            }else{
+               this->reset();
+               return matchState::NotMatched;
+            }
          }
       }
    }

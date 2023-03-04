@@ -3,9 +3,9 @@
 %{
 %}
 
-%token  
-  NAME EMIT JUMP APPEND 
-  STATE PUSHFPOS POPFPOS 
+%token
+  NAME EMIT JUMP APPEND
+  STATE PUSHFPOS POPFPOS
   STRING_LITERAL
   CHAR DEFAULT MODE DOT_DOT CHARSEQ
 
@@ -51,7 +51,7 @@ Action :
 
 Actions :
   '[' ActionList ']'
-  | '[' ']' 
+  | '[' ']'
 ;
 
 ActionList :
@@ -106,6 +106,7 @@ BasicPrim:
   | STRING_LITERAL
   | '!' BasicPrim
   | '(' Expr ')'
+  | '(' ')'
 ;
 
 Prim :

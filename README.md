@@ -10,7 +10,7 @@ Flexible
 
   exp       =  'eE'                                   ;
   sign      =  '+-'                                   ;
-  digit     =  '0'~'9'                                ;                
+  digit     =  '0'..'9'                                ;                
   exponent  =  exp sign? digit+                       ;
   real      =  sign? digit* '.' digit+ exponent?
                | digit+ ( '.' exponent? | exponent )  ;
@@ -41,11 +41,11 @@ the digits expression is repeated 3 times.
 [Flex](https://github.com/westes/flex) lexer improves on the traditional form by
 allowing to assign expressions to a variable. Nevertheless it still has a fair few pitfalls,
 such as not allowing the comments to start at the left hand side, 
-while expressions must not have preceding whitespace.
+while expressions must not have preceding whitespace as shown below
 
 ```
 	/**
-	 * @brief a lexer for a floating point number. 
+	 * @brief a flex lexer for a floating point number. 
 	 **/
 
 EXP               [eE]
@@ -66,14 +66,14 @@ Flexible basic concepts
 -----------------------
 Characters and strings live in separate namespace as in C and C++.
 This allows to use whitespace to format the code without affecting the pattern
-and reduces the number of specila cases that need to be escaped. 
+and reduces the number of special cases that need to be escaped. 
 Only \" and ' need to be escaped ( \\' \\")
 The result is that the lnaguage is much easier and faster to learn and the source code
 is pleasant to read and easy to understand.
 
 Single character literal
 ------------------------
-A Single character is exppressed by surroundng with sinle quotes as in many programming languages
+A single character is expressed by surroundng with single quotes as in many programming languages
 
 ```singlechar = 'a' ;```
 
@@ -88,10 +88,11 @@ alternatives1 = 'a' | 'b' | 'c' | 'x' | 'y' | 'z' ; // alternate form
 
 concatenation
 -------------
-Expressions are concatenated simply by sequencing with whitespace
+Expressions are concatenated simply by sequencing with optional whitespace.
 
 ```
 concat = 'a' 'b' 'c' ; // represents the string "abc"
+concat1 = "abc" ; // alternate form also represents the string "abc"
 ```
 
 character strings
@@ -119,7 +120,9 @@ greeting = england | france | spain | japan ;
 Empty set
 ---------
 
-```empty_set = {};```
+```
+empty_set = ();
+```
 
 Empty set is only useful in connection with optional string. 
 When the lexer matches the empty set, the current token is not consumed. 
@@ -131,9 +134,9 @@ Optional string
 Optional string is described by postscript ?
 
 ```
-very = ("very"' '+)  ;
+very = "very" ' '+       ;
 niceness  = very? "nice" ;
-optional1 = "abcd" | {} ; // alternative form
+optional1 = "abcd" | ()  ; // alternative form
 ```
 
 [Regular expressions in formal language theory]
@@ -141,8 +144,31 @@ optional1 = "abcd" | {} ; // alternative form
 
 One or more string
 ------------------
+The traditional + operator is used to represent a sequence of one or more.
 
-...etc
+```
+ ch = 'A' .. 'Z' | 'a' .. 'z' ;
+ word = ch+  ;
+```
+
+Range
+-----
+
+A sequence of two dots between characters represents a range
+
+```
+digit = '0' .. '9';
+```
+
+Encapsulation
+-------------
+A sequence of three dots between two expressions is used for encapsulation.
+
+```
+
+multiLineComment = "/*" ... "*/"  ;
+slcomment = "//" ... '\n' ;
+```
 
 
 

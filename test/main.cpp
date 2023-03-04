@@ -1,5 +1,6 @@
 
 #include <flexible/matchers/regexMatcher.hpp>
+#include <quan_matters/test/test.hpp>
 
 const char * getMatchStr(matchState state)
 {
@@ -25,7 +26,7 @@ void any_test()
    std::string const str1 = "absdefghijkmnopqrstuvwxyz"
    "1234567890!\"£$%^&*()_+=-QWERTYUIOP{}[]ASDFGHJKL:@~;'#"
    "|\\ZXCVBNM<,>.?/";
-   any_matcher<std::string::value_type> const match;
+   charAnyMatcher<std::string::value_type> const match;
 
    for (auto c : str1){
       if (! match(c)){
@@ -39,7 +40,7 @@ void one_of_list_test()
    std::cout << "one_of_list_test()\n";
 
    std::string const str = "abc";
-   primOneOfMatcher<std::string::value_type> match = str;
+   charAlternateMatcher<std::string::value_type> match = str;
 
    for ( auto c : str){
       QUAN_CHECK( match(c));
@@ -60,7 +61,7 @@ void one_of_list_test()
 void range_test()
 {
    std::cout << "range_test()\n";
-   range_matcher<std::string::value_type> const match{'b','e'};
+   charRangeMatcher<std::string::value_type> const match{'b','e'};
 
    QUAN_CHECK( match('b') == true)
    QUAN_CHECK( match('a') == false)
@@ -71,11 +72,11 @@ void range_test()
 void match_expr_test()
 {
    std::cout << "match_expr_test()\n";
-   auto me = matchSequence<char>{};
+   auto me = exprConcatMatcher<char>{};
 
    // flexible syntax
    // me = 'ab';
-   me.push_back(std::make_unique<primOneOfMatcher<char> >("ab"));
+   me.push_back(std::make_unique<charAlternateMatcher<char> >("ab"));
 
    std::string lexeme;
    std::string str = "a";
@@ -94,7 +95,7 @@ void match_expr_test()
 
    // flexible syntax
    // me = 'ab' 'de' ;
-   me.push_back(std::make_unique<primOneOfMatcher<char> >("de"));
+   me.push_back(std::make_unique<charAlternateMatcher<char> >("de"));
 
    str = "ad";
    lexeme = "";
@@ -149,10 +150,10 @@ void or_matcher_test()
    std::string lexeme;
    std::string str ;
 
-   auto m1 = orExprMatcher<char>{};
+   auto m1 = exprAlternateMatcher<char>{};
    // m1 = "abc" | "de" ;
-   m1.push_back(std::make_unique<simpleStringMatcher<char> >("abc"));
-   m1.push_back(std::make_unique<simpleStringMatcher<char> >("de"));
+   m1.push_back(std::make_unique<charConcatMatcher<char> >("abc"));
+   m1.push_back(std::make_unique<charConcatMatcher<char> >("de"));
 
    str = "abc";
    lexeme = "";
@@ -167,12 +168,12 @@ void or_matcher_test()
    QUAN_CHECK(lexeme == "de")
    QUAN_CHECK(str=="")
 
-   auto m2 = orExprMatcher<char>{};
+   auto m2 = exprAlternateMatcher<char>{};
 
    // check that order of alternatives doesnt make a difference.
    // m2 = "de" | "abc" ;
-   m2.push_back(std::make_unique<simpleStringMatcher<char> >("de"));
-   m2.push_back(std::make_unique<simpleStringMatcher<char> >("abc"));
+   m2.push_back(std::make_unique<charConcatMatcher<char> >("de"));
+   m2.push_back(std::make_unique<charConcatMatcher<char> >("abc"));
 
    str = "abc";
    lexeme = "";
@@ -191,7 +192,7 @@ void or_matcher_test()
 void optional_matcher_test()
 {
    std::cout << "optional_matcher_test()\n";
-   auto m1 = optionalMatcher<char>{std::make_unique<simpleStringMatcher<char> >("hello")};
+   auto m1 = exprOptionalMatcher<char>{std::make_unique<charConcatMatcher<char> >("hello")};
 
    std::string str;
    std::string lexeme;
@@ -215,7 +216,11 @@ void optional_matcher_test()
    QUAN_CHECK(str == "goodbye")
 }
 
-void longer_string_test(){
+/*
+multiple lexemes in one string
+*/
+void longer_string_test()
+{
 
 }
 
@@ -241,9 +246,9 @@ struct matcher{
 void matcher_test()
 {
   auto make_matcher = [] (){
-     auto m = std::make_unique<orExprMatcher<char> >();
-     m->push_back(std::make_unique<simpleStringMatcher<char> >("abc"));
-     m->push_back(std::make_unique<simpleStringMatcher<char> >("wxyz"));
+     auto m = std::make_unique<exprAlternateMatcher<char> >();
+     m->push_back(std::make_unique<charConcatMatcher<char> >("abc"));
+     m->push_back(std::make_unique<charConcatMatcher<char> >("wxyz"));
      m->push_back(std::make_unique<emptyMatcher<char> > ());
      return matcher{std::move(m)};
   };

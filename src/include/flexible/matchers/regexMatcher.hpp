@@ -14,34 +14,32 @@
 enum class matchState{
 /**
     @brief  EOF empty strIn
-      strIn state empty so eof will keep being sent
+      strIn  state empty
       Lexeme state unchanged
-      or none if there were none
 **/
    Eof,
 /**
-    @brief Couldnt match
-    strIn state   characters after last successful match removed
-    Lexeme state  attempted match characters after last successful match added
+    @brief No match looking ahead into strIn
+    strIn state attemppted match characters after last successful match removed
+    Lexeme state attempted match characters after last successful match added
 **/
-   NotMatched,  // ch is not a match so expression not matched
+   NotMatched,
 /**
    @brief match
    strIn state  matched characters removed
    lexeme state The resulting lexeme
 **/
-   Matched,  // ch is a match and all elements matched "matched"
-
+   Matched,
 /**
    @brief Empty match
    strIn  Unchanged
    lexeme Empty
 **/
-   MatchedEmpty // matched the empty set ( so don't consume ch)
+   MatchedEmpty
 };
 
 /**
-abstract base class expression matcher stat machine
+abstract base class expression matcher state machine
 **/
 template <std::equality_comparable Char>
 struct exprMatcher{
@@ -58,6 +56,10 @@ struct exprMatcher{
      return ch;
    }
 
+   static void backtrack(std::basic_string<Char> & strIn,std::basic_string<Char> & lexeme)
+   {
+      strIn = std::move(lexeme) + strIn;
+   }
 };
 
 /**
@@ -139,7 +141,8 @@ struct matchSequence : exprMatcher<Char>{
       currentMatchIndex = 0;
    }
 
-   [[nodiscard]] matchState consume(std::basic_string<Char> & strIn, std::basic_string<Char> & lexemeOut) override
+   [[nodiscard]] matchState
+   consume(std::basic_string<Char> & strIn, std::basic_string<Char> & lexemeOut) override
    {
       if ( this->m_matchSeq.empty()){
          return matchState::NotMatched;
@@ -148,24 +151,13 @@ struct matchSequence : exprMatcher<Char>{
          for (;;){
             switch(auto state = this->m_matchSeq[currentMatchIndex]->consume(strIn,lexemeOut)){
                case matchState::Matched:
-                  if (++currentMatchIndex < std::ssize(m_matchSeq)){
-                     // onto next matcher
-                     break;
-                  }else{
-                     this->reset();
-                     return state;
-                  }
+                  [[fallthrough]];
                case matchState::MatchedEmpty:
                   if (++currentMatchIndex < std::ssize(m_matchSeq)){
-                     break; // dont consume char go round again
-                  }else{
-                     this->reset();
-                     return state;
+                     break; // onto next matcher
                   }
+                  [[fallthrough]];
                case matchState::NotMatched:
-                  this->reset();
-                  return state;
-               case matchState::Eof:
                   this->reset();
                   return state;
                default:
@@ -204,7 +196,8 @@ struct simpleStringMatcher : exprMatcher<Char> {
     simpleStringMatcher(std::basic_string<Char> const & seq)
     : m_str{seq}{}
 
-     [[nodiscard]] matchState consume(std::basic_string<Char> & strIn, std::basic_string<Char> & lexemeOut) override
+     [[nodiscard]] matchState
+     consume(std::basic_string<Char> & strIn, std::basic_string<Char> & lexemeOut) override
      {
         if (!strIn.empty()){
            auto const strInSize = strIn.size();
@@ -247,16 +240,15 @@ struct optionalMatcher : exprMatcher<Char>{
     void reset()override
     { this->matcher->reset();}
 
-   [[nodiscard]] matchState consume(std::string & strIn, std::string & lexemeOut) override
+   [[nodiscard]] matchState
+   consume(std::string & strIn, std::string & lexemeOut) override
    {
        if (!strIn.empty()){
           switch (auto const result = matcher->consume(strIn,lexemeOut)){
              case matchState::Matched:
                 return result;
-             case matchState::Eof:
-                [[fallthrough]];
              case matchState::NotMatched:
-                strIn += std::move(lexemeOut);
+                this->backtrack(strIn,lexemeOut);
                 [[fallthrough]];
              case matchState::MatchedEmpty:
                 return matchState::MatchedEmpty;
@@ -274,10 +266,9 @@ struct optionalMatcher : exprMatcher<Char>{
 // parallel matcher
 template <std::equality_comparable Char>
 struct orExprMatcher : exprMatcher<Char>{
-
    //submatcher
-   struct matchInfo{
-     matchInfo(std::unique_ptr<exprMatcher<Char> > && p)
+   struct subMatcher{
+     subMatcher(std::unique_ptr<exprMatcher<Char> > && p)
      :matcher{std::move(p)},finished{false}{}
      void reset()
      {
@@ -292,7 +283,7 @@ struct orExprMatcher : exprMatcher<Char>{
       requires std::derived_from<T,exprMatcher<Char> >
    void push_back(std::unique_ptr<T> && p)
    {
-      m_matchSeq.push_back(matchInfo(std::move(p)));
+      m_matchSeq.push_back(subMatcher(std::move(p)));
    }
 
    void reset() override
@@ -321,17 +312,15 @@ struct orExprMatcher : exprMatcher<Char>{
                      // is this the last matcher in the sequence?
                      if (matcherIdx == m_matchSeq.size()){
                         this->reset(); // always reset before return
-                        if (matchedEmpty == true){  // matchedEmpty reuires retoring original string
-                           // in fact should have been done by submatcher?
-                           strIn = std::move(lexemeOut) + strIn; //backout
+                        if (matchedEmpty == true){
+                           this->backtrack(strIn,lexemeOut);
                            return matchState::MatchedEmpty;
                         }
                         else {
                            return matchState::NotMatched;
                         }
                      }else{ // not last matcher
-                        // This matcher didnt match so restore the string state for the next matcher
-                        strIn = std::move(lexemeOut) + strIn; //backout
+                        this->backtrack(strIn,lexemeOut);
                         break;
                      }
                   case matchState::Matched:
@@ -350,7 +339,7 @@ struct orExprMatcher : exprMatcher<Char>{
    }
 
   private:
-    std::vector<matchInfo > m_matchSeq;
+    std::vector<subMatcher> m_matchSeq;
 
 };
 /**

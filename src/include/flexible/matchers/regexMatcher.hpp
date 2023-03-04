@@ -12,9 +12,31 @@
 #include <quan/meta/is_element_of.hpp>
 
 enum class matchState{
-   Eof,         // eof encountered while matching . Maybe same as NotMatched?
+/**
+    @brief  EOF empty strIn
+      strIn state empty so eof will keep being sent
+      Lexeme state unchanged
+      or none if there were none
+**/
+   Eof,
+/**
+    @brief Couldnt match
+    strIn state   characters after last successful match removed
+    Lexeme state  attempted match characters after last successful match added
+**/
    NotMatched,  // ch is not a match so expression not matched
+/**
+   @brief match
+   strIn state  matched characters removed
+   lexeme state The resulting lexeme
+**/
    Matched,  // ch is a match and all elements matched "matched"
+
+/**
+   @brief Empty match
+   strIn  Unchanged
+   lexeme Empty
+**/
    MatchedEmpty // matched the empty set ( so don't consume ch)
 };
 
@@ -124,28 +146,28 @@ struct matchSequence : exprMatcher<Char>{
       }
       if ( !strIn.empty()){
          for (;;){
-            switch(this->m_matchSeq[currentMatchIndex]->consume(strIn,lexemeOut)){
+            switch(auto state = this->m_matchSeq[currentMatchIndex]->consume(strIn,lexemeOut)){
                case matchState::Matched:
                   if (++currentMatchIndex < std::ssize(m_matchSeq)){
+                     // onto next matcher
                      break;
                   }else{
                      this->reset();
-                     return matchState::Matched;
+                     return state;
                   }
                case matchState::MatchedEmpty:
                   if (++currentMatchIndex < std::ssize(m_matchSeq)){
                      break; // dont consume char go round again
                   }else{
-                     strIn = std::move(lexemeOut) + strIn;
                      this->reset();
-                     return matchState::MatchedEmpty;
+                     return state;
                   }
                case matchState::NotMatched:
                   this->reset();
-                  return matchState::NotMatched;
+                  return state;
                case matchState::Eof:
                   this->reset();
-                  return matchState::Eof;
+                  return state;
                default:
                   assert(false);
             }
@@ -164,16 +186,54 @@ struct matchSequence : exprMatcher<Char>{
   @todo can be better done just iterate the string
 **/
 template <std::equality_comparable Char>
+
+#if (0)
+
 struct simpleStringMatcher : matchSequence<Char>{
 
     simpleStringMatcher(std::basic_string<Char> const & seq)
     {
        for ( auto const & c : seq){
           this->push_back(std::make_unique<charMatcher<Char> >(c));
-       }
-    }
+      }
+   }
 };
+#else
+struct simpleStringMatcher : exprMatcher<Char> {
 
+    simpleStringMatcher(std::basic_string<Char> const & seq)
+    : m_str{seq}{}
+
+     [[nodiscard]] matchState consume(std::basic_string<Char> & strIn, std::basic_string<Char> & lexemeOut) override
+     {
+        if (!strIn.empty()){
+           auto const strInSize = strIn.size();
+           auto const mStrSize = m_str.size();
+           if ( strInSize >= mStrSize){
+                for ( std::size_t i = 0U; i< mStrSize;++i){
+                  Char const ch = this->pop_front(strIn);
+                  lexemeOut += ch;
+                  if  (m_str[i] != ch){
+                     return matchState::NotMatched;
+                  }
+                }
+                return matchState::Matched;
+           }else{
+              for ( std::size_t i = 0U; i < strInSize; ++i){
+                  lexemeOut += this->pop_front(strIn);
+              }
+              return matchState::NotMatched;
+           }
+        }else{
+           return matchState::Eof;
+        }
+     }
+    void reset()override
+    {}
+   private:
+   std::basic_string<Char> const m_str;
+};
+#endif
 /*
  @brief match a string or the empty set
 */
@@ -190,22 +250,20 @@ struct optionalMatcher : exprMatcher<Char>{
    [[nodiscard]] matchState consume(std::string & strIn, std::string & lexemeOut) override
    {
        if (!strIn.empty()){
-          for (;;){
-             switch (auto const result = matcher->consume(strIn,lexemeOut)){
-                case matchState::Matched:
-                   return result;
-                case matchState::Eof:
-                   [[fallthrough]];
-                case matchState::MatchedEmpty:
-                   [[fallthrough]];
-                case matchState::NotMatched:
-                   strIn += std::move(lexemeOut);
-                   return matchState::MatchedEmpty;
-                default:
-                  assert(false);
-                  return result;
-             }
-         }
+          switch (auto const result = matcher->consume(strIn,lexemeOut)){
+             case matchState::Matched:
+                return result;
+             case matchState::Eof:
+                [[fallthrough]];
+             case matchState::NotMatched:
+                strIn += std::move(lexemeOut);
+                [[fallthrough]];
+             case matchState::MatchedEmpty:
+                return matchState::MatchedEmpty;
+             default:
+               assert(false);
+               return result;
+          }
       }else{
          return matchState::Eof;
       }
